@@ -1,26 +1,163 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@layer base {
+  :root {
+    --background: #fdfcf7; /* Premium Ivory/Cream */
+    --foreground: #1c1a17; /* Off-black Charcoal/Warm Bronze */
+    --card: #ffffff;
+    --card-foreground: #1c1a17;
+    --popover: #ffffff;
+    --popover-foreground: #1c1a17;
+    --primary: #c59b27; /* Rich Champagne Gold */
+    --primary-foreground: #ffffff;
+    --secondary: #e6dfd1; /* Light Champagne/Plaster */
+    --secondary-foreground: #1c1a17;
+    --muted: #f4efe2;
+    --muted-foreground: #766f64;
+    --accent: #a37f1e; /* Deep Gold */
+    --accent-foreground: #ffffff;
+    --border: #e6dfd1;
+    --input: #e6dfd1;
+    --ring: #c59b27;
+    --radius: 0.75rem;
+  }
+
+  .dark {
+    --background: #0f1c18; /* Luxury Velvet Emerald Dark */
+    --foreground: #f4efe2;
+    --card: #152721;
+    --card-foreground: #f4efe2;
+    --popover: #152721;
+    --popover-foreground: #f4efe2;
+    --primary: #d4af37; /* Bright Gold */
+    --primary-foreground: #0f1c18;
+    --secondary: #223830;
+    --secondary-foreground: #f4efe2;
+    --muted: #1e332c;
+    --muted-foreground: #a0b2aa;
+    --accent: #e5c158;
+    --accent-foreground: #0f1c18;
+    --border: #223830;
+    --input: #223830;
+    --ring: #d4af37;
+  }
 }
 
-@theme inline {
+@theme {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --font-serif: var(--font-cormorant), Cormorant Garamond, Georgia, serif;
+  --font-sans: var(--font-montserrat), Montserrat, sans-serif;
+
+  --animate-float: float 6s ease-in-out infinite;
+  --animate-pulse-slow: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  --animate-sparkle: sparkle 2s ease-in-out infinite;
+  --animate-sway: sway 12s ease-in-out infinite;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+@keyframes float {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-10px) rotate(2deg); }
+}
+
+@keyframes sway {
+  0%, 100% { transform: translateX(0px) rotate(0deg); }
+  50% { transform: translateX(15px) rotate(-3deg); }
+}
+
+@keyframes sparkle {
+  0%, 100% { opacity: 0.3; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.2); }
+}
+
+/* Custom premium styles */
+.gold-gradient {
+  background: linear-gradient(135deg, #b88728 0%, #e2c070 30%, #f7e6a7 50%, #e2c070 70%, #b88728 100%);
+}
+
+.gold-gradient-text {
+  background: linear-gradient(135deg, #b88728 0%, #e2c070 30%, #f7e6a7 50%, #e2c070 70%, #b88728 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.dark .gold-gradient-text {
+  background: linear-gradient(135deg, #c59b27 0%, #f3d47a 50%, #c59b27 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.gold-border {
+  border: 1px solid transparent;
+  background-image: linear-gradient(var(--background), var(--background)), 
+                    linear-gradient(135deg, #b88728, #f7e6a7, #b88728);
+  background-origin: border-box;
+  background-clip: padding-box, border-box;
+}
+
+.glass-panel {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(197, 168, 128, 0.2);
+}
+
+.dark .glass-panel {
+  background: rgba(21, 39, 33, 0.7);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(212, 175, 55, 0.15);
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 0 8px 32px 0 rgba(197, 168, 128, 0.08);
+}
+
+.dark .glass-card {
+  background: rgba(21, 39, 33, 0.5);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(212, 175, 55, 0.1);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+}
+
+/* Scrollbar styles */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--background);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--primary);
+  border-radius: 3px;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-montserrat), sans-serif;
+  overflow-x: hidden;
+}
+
+/* Handwriten / Signature Font for Calligraphy names */
+.calligraphy {
+  font-family: var(--font-serif);
+  font-style: italic;
 }
