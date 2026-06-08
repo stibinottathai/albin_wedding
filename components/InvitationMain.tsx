@@ -390,9 +390,6 @@ export const InvitationMain: React.FC<InvitationMainProps> = ({ guest }) => {
                 <a className={`font-label-md text-xs uppercase tracking-widest transition-all duration-300 whitespace-nowrap ${activeSection === "well-wishes" ? "text-[var(--primary)] font-bold border-b border-[var(--primary)] pb-1" : "text-[var(--muted-text)] hover:text-[var(--primary)]"}`} href="#well-wishes">
                   {t("wishes")}
                 </a>
-                <a className={`font-label-md text-xs uppercase tracking-widest transition-all duration-300 whitespace-nowrap ${activeSection === "rsvp" ? "text-[var(--primary)] font-bold border-b border-[var(--primary)] pb-1" : "text-[var(--muted-text)] hover:text-[var(--primary)]"}`} href="#rsvp">
-                  {t("rsvp")}
-                </a>
                 <a className="font-label-md text-xs uppercase tracking-widest transition-all duration-300 whitespace-nowrap text-[var(--muted-text)] hover:text-[var(--primary)]" href="/admin">
                   {t("login")}
                 </a>
@@ -442,7 +439,6 @@ export const InvitationMain: React.FC<InvitationMainProps> = ({ guest }) => {
                       { href: "#events", label: t("schedule"), section: "events" },
                       { href: "#gallery", label: t("gallery"), section: "gallery" },
                       { href: "#well-wishes", label: t("wishes"), section: "well-wishes" },
-                      { href: "#rsvp", label: t("rsvp"), section: "rsvp" },
                       { href: "/admin", label: t("login"), section: "admin" }
                     ].map((link) => (
                       <a
