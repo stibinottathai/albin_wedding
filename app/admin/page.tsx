@@ -278,10 +278,11 @@ export default function AdminDashboard() {
 
   if (authLoading) {
     return (
-      <div className="fixed inset-0 bg-[#0f1c18] flex items-center justify-center px-4">
+      <div className="fixed inset-0 flex items-center justify-center px-4"
+        style={{ background: "linear-gradient(135deg, #2c241e 0%, #1f1b17 50%, #151210 100%)" }}>
         <div className="text-center">
           <div className="w-10 h-10 border-4 border-[#d4af37] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-xs text-[#d4af37] font-semibold tracking-widest uppercase">Checking Authorization...</p>
+          <p className="text-xs text-[#d4af37] font-semibold tracking-widest uppercase sans">Checking Authorization...</p>
         </div>
       </div>
     );
@@ -289,52 +290,61 @@ export default function AdminDashboard() {
 
   if (!isAuthenticated) {
     return (
-      <div className="fixed inset-0 bg-[#0f1c18] flex items-center justify-center px-4">
-        <div className="w-full max-w-sm glass-panel p-8 rounded-2xl border border-[#d4af37]/30 shadow-2xl text-center">
-          <div className="w-12 h-12 rounded-full bg-[#d4af37]/10 flex items-center justify-center text-[#d4af37] mx-auto mb-4">
-            <Lock className="h-6 w-6 animate-pulse" />
-          </div>
-          <h1 className="font-serif text-2xl text-white font-bold mb-2">Admin Dashboard</h1>
-          <p className="text-xs text-muted-foreground mb-6">Sign in to manage invitations & RSVPs.</p>
+      <div className="fixed inset-0 flex items-center justify-center px-4 py-8 overflow-y-auto"
+        style={{ background: "linear-gradient(135deg, #2c241e 0%, #1f1b17 50%, #151210 100%)" }}>
+        
+        {/* Decorative gold background light */}
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-[#d4af37]/15 rounded-full blur-[100px] pointer-events-none" />
+
+        <div className="relative w-full max-w-sm bg-[#1f1b17]/95 rounded-3xl border border-[#d4af37]/35 shadow-2xl p-6 sm:p-8 text-center">
+          {/* Brand Monogram */}
+          <div className="serif italic text-3xl text-[#d4af37] font-light mb-1">A & S</div>
+          <div className="w-12 h-px bg-[#d4af37]/30 mx-auto mb-6" />
+
+          <h1 className="font-serif text-2xl text-white font-medium mb-1">Admin Dashboard</h1>
+          <p className="sans text-[10px] text-white/55 tracking-wider uppercase mb-8">Sign in to manage wedding data</p>
           
-          <form onSubmit={handleLogin} className="space-y-4 text-left">
+          <form onSubmit={handleLogin} className="space-y-5 text-left">
             <div>
-              <label className="block text-[10px] uppercase tracking-wider font-bold text-[#d4af37] mb-1.5">Email Address</label>
+              <label className="block sans text-[10px] uppercase tracking-widest text-[#d4af37] mb-2 font-bold">Email Address</label>
               <input
                 type="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="admin@example.com"
-                className="w-full px-4 py-3 rounded-xl border border-emerald-900 bg-emerald-950/50 text-white placeholder-emerald-700/60 focus:outline-none focus:ring-1 focus:ring-[#d4af37] text-sm"
+                className="w-full px-4 py-3 bg-[#151210]/60 border border-[#d4af37]/30 rounded-xl text-white placeholder-white/30 focus:outline-none focus:border-[#d4af37] focus:ring-1 focus:ring-[#d4af37]/50 text-xs transition-colors"
               />
             </div>
             <div>
-              <label className="block text-[10px] uppercase tracking-wider font-bold text-[#d4af37] mb-1.5">Password</label>
+              <label className="block sans text-[10px] uppercase tracking-widest text-[#d4af37] mb-2 font-bold">Password</label>
               <input
                 type="password"
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full px-4 py-3 rounded-xl border border-emerald-900 bg-emerald-950/50 text-white placeholder-emerald-700/60 focus:outline-none focus:ring-1 focus:ring-[#d4af37] text-sm"
+                className="w-full px-4 py-3 bg-[#151210]/60 border border-[#d4af37]/30 rounded-xl text-white placeholder-white/30 focus:outline-none focus:border-[#d4af37] focus:ring-1 focus:ring-[#d4af37]/50 text-xs transition-colors"
               />
-              {authError && <p className="text-xs text-red-400 mt-2 text-center">{authError}</p>}
+              {authError && <p className="text-xs text-red-400 mt-3 text-center bg-red-950/45 border border-red-900/40 py-2 px-3 rounded-lg">{authError}</p>}
             </div>
             <button
               type="submit"
-              className="w-full py-3 bg-[#d4af37] hover:bg-[#bfa032] text-black font-semibold text-xs uppercase tracking-widest rounded-full transition-all flex items-center justify-center gap-2 mt-6 cursor-pointer"
+              className="w-full py-3.5 bg-[#d4af37] hover:bg-[#ffe699] hover:text-[#1f1b17] hover:scale-[1.01] active:scale-[0.99] text-[#1f1b17] font-semibold text-xs uppercase tracking-widest rounded-xl transition-all duration-300 flex items-center justify-center gap-2 mt-6 cursor-pointer shadow-md"
             >
               Sign In
               <ArrowRight className="h-3.5 w-3.5" />
             </button>
           </form>
-          <p className="text-[10px] text-muted-foreground mt-8 text-center">
-            {isSupabaseConfigured 
-              ? "Use your Supabase email & password." 
-              : <>Fallback: Use <code className="bg-emerald-950 px-1 py-0.5 rounded text-[#d4af37]">stibinaugustine3047@gmail.com</code> & <code className="bg-emerald-950 px-1 py-0.5 rounded text-[#d4af37]">12345678</code></>
-            }
-          </p>
+
+          <div className="border-t border-[#d4af37]/15 mt-8 pt-6">
+            <p className="sans text-[10px] text-white/50 leading-relaxed">
+              {isSupabaseConfigured 
+                ? "Authorized account credentials required." 
+                : <>Fallback Mode Enabled<br/>Email: <span className="text-white/80 font-mono">stibinaugustine3047@gmail.com</span><br/>Password: <span className="text-white/80 font-mono">12345678</span></>
+              }
+            </p>
+          </div>
         </div>
       </div>
     );
