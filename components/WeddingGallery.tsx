@@ -78,7 +78,7 @@ export const WeddingGallery: React.FC = () => {
         </div>
         
         {/* Masonry Columns Skeleton */}
-        <div className="columns-1 sm:columns-2 md:columns-3 gap-4 px-4 space-y-4 max-w-5xl mx-auto">
+        <div className="columns-2 sm:columns-2 md:columns-3 gap-4 px-4 space-y-4 max-w-5xl mx-auto">
           {[1, 2, 3, 4, 5, 6].map((i) => (
             <div 
               key={i} 
@@ -132,7 +132,7 @@ export const WeddingGallery: React.FC = () => {
         <div className="max-h-[60vh] md:max-h-[700px] overflow-y-auto pr-2 pb-4">
           <motion.div
             layout
-            className="columns-1 sm:columns-2 md:columns-3 gap-4 px-2 space-y-4 max-w-5xl mx-auto"
+            className="columns-2 sm:columns-2 md:columns-3 gap-4 px-2 space-y-4 max-w-5xl mx-auto"
           >
             <AnimatePresence mode="popLayout">
               {displayedImages.map((img) => (
