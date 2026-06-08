@@ -74,10 +74,10 @@ export const LiveCountdown: React.FC<LiveCountdownProps> = ({ targetDate }) => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: index * 0.1, duration: 0.6 }}
-          className="glass-card rounded-xl py-3 px-1.5 sm:py-4 sm:px-3 text-center flex flex-col items-center justify-center border border-[#e5dfd1] relative overflow-hidden"
+          className="bg-[var(--parchment)] rounded-2xl py-3 px-1.5 sm:py-4 sm:px-3 text-center flex flex-col items-center justify-center border border-[var(--border-warm)] relative overflow-hidden"
         >
-          {/* Accent Gold Top Line */}
-          <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-primary to-accent" />
+          {/* Sage accent top line */}
+          <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-[var(--sage)] to-[var(--dusty-rose)]" />
           
           <div className="relative overflow-hidden h-9 sm:h-12 w-full flex items-center justify-center">
             <AnimatePresence mode="popLayout">
@@ -87,14 +87,14 @@ export const LiveCountdown: React.FC<LiveCountdownProps> = ({ targetDate }) => {
                 animate={{ y: 0, opacity: 1 }}
                 exit={{ y: -20, opacity: 0 }}
                 transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                className="text-2xl sm:text-3.5xl font-semibold text-foreground tracking-tight font-serif"
+                className="text-2xl sm:text-3xl font-light text-[var(--charcoal)] tracking-tight serif italic"
               >
                 {String(item.value).padStart(2, "0")}
               </motion.span>
             </AnimatePresence>
           </div>
 
-          <span className="text-[10px] sm:text-xs uppercase tracking-wider text-muted-foreground font-medium mt-1">
+          <span className="sans text-[9px] sm:text-[10px] uppercase tracking-widest text-[var(--muted-text)] font-medium mt-1">
             {item.label}
           </span>
         </motion.div>
