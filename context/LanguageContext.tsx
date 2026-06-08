@@ -195,6 +195,10 @@ const translations: Translations = {
   personalizedGreeting: {
     en: "Dearest Guest,",
     ml: "പ്രിയപ്പെട്ട അതിഥീ,",
+  },
+  login: {
+    en: "Login",
+    ml: "ലോഗിൻ",
   }
 };
 
