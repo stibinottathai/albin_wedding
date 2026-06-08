@@ -898,7 +898,7 @@ export const InvitationMain: React.FC<InvitationMainProps> = ({ guest }) => {
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1.5 sans text-[9px] text-white/35 hover:text-[var(--sage-light)] transition-all uppercase tracking-[0.15em] font-medium hover:underline"
               >
-                <span>Create a website like this</span>
+                <span>Create a website like this or any custom website</span>
                 <span className="w-1 h-1 bg-[var(--sage-light)]/40 rounded-full" />
                 <MessageCircle className="w-3 h-3 text-[#25D366]" />
               </a>
