@@ -21,7 +21,8 @@ import {
   Camera,
   BookOpen,
   Edit,
-  Calendar
+  Calendar,
+  Menu
 } from "lucide-react";
 import { 
   getWeddingInfo, 
@@ -67,6 +68,7 @@ export default function AdminDashboard() {
   const storyFormRef = React.useRef<HTMLDivElement>(null);
   const faqFormRef = React.useRef<HTMLDivElement>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [authError, setAuthError] = useState("");
@@ -1143,121 +1145,110 @@ export default function AdminDashboard() {
     );
   }
 
+  // Helper: navigate to tab and close mobile sidebar
+  const goToTab = (tab: typeof activeTab) => {
+    setActiveTab(tab);
+    setIsSidebarOpen(false);
+  };
+
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row text-slate-800">
-      {/* Sidebar Navigation */}
-      <aside className="w-full md:w-64 bg-slate-900 text-slate-300 p-6 flex flex-col justify-between shrink-0">
-        <div>
-          <div className="flex items-center gap-2 mb-8">
-            <div className="w-8 h-8 rounded bg-[#d4af37] text-slate-950 flex items-center justify-center font-bold">A</div>
-            <div>
-              <h2 className="font-serif text-white font-bold text-base leading-tight">Albin & Stella</h2>
-              <span className="text-[10px] text-slate-400 uppercase tracking-widest">Wedding Admin</span>
+    <div className="min-h-screen bg-slate-50 flex flex-col text-slate-800">
+
+      {/* ── Mobile Top Header Bar ── */}
+      <header className="md:hidden flex items-center justify-between bg-slate-900 text-white px-4 py-3 sticky top-0 z-40 shrink-0">
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 rounded bg-[#d4af37] text-slate-950 flex items-center justify-center font-bold text-xs">A</div>
+          <span className="font-serif text-white font-bold text-sm">Wedding Admin</span>
+        </div>
+        <button
+          onClick={() => setIsSidebarOpen(true)}
+          className="p-2 rounded-lg hover:bg-slate-800 transition-colors"
+          aria-label="Open menu"
+        >
+          <Menu className="h-5 w-5 text-[#d4af37]" />
+        </button>
+      </header>
+
+      <div className="flex flex-1 overflow-hidden">
+
+        {/* ── Mobile Overlay Backdrop ── */}
+        {isSidebarOpen && (
+          <div
+            className="fixed inset-0 bg-black/60 z-40 md:hidden"
+            onClick={() => setIsSidebarOpen(false)}
+          />
+        )}
+
+        {/* ── Sidebar Navigation ── */}
+        <aside className={`
+          fixed top-0 left-0 h-full z-50 w-72 bg-slate-900 text-slate-300 p-6 flex flex-col justify-between shrink-0
+          transform transition-transform duration-300 ease-in-out
+          ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}
+          md:static md:w-64 md:translate-x-0 md:h-auto md:z-auto
+        `}>
+          <div>
+            {/* Sidebar Header */}
+            <div className="flex items-center justify-between mb-8">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded bg-[#d4af37] text-slate-950 flex items-center justify-center font-bold">A</div>
+                <div>
+                  <h2 className="font-serif text-white font-bold text-base leading-tight">Albin &amp; Stella</h2>
+                  <span className="text-[10px] text-slate-400 uppercase tracking-widest">Wedding Admin</span>
+                </div>
+              </div>
+              {/* Close button — mobile only */}
+              <button
+                onClick={() => setIsSidebarOpen(false)}
+                className="md:hidden p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-colors"
+                aria-label="Close menu"
+              >
+                <X className="h-5 w-5" />
+              </button>
             </div>
+
+            <nav className="space-y-1">
+              {[
+                { id: "analytics" as const, icon: <BarChart3 className="h-4 w-4 text-[#d4af37]" />, label: "Analytics" },
+                { id: "guests" as const, icon: <Users className="h-4 w-4 text-[#d4af37]" />, label: "Guest List" },
+                { id: "rsvp" as const, icon: <ClipboardList className="h-4 w-4 text-[#d4af37]" />, label: "RSVP Responses" },
+                { id: "wishes" as const, icon: <MessageSquare className="h-4 w-4 text-[#d4af37]" />, label: "Wishes Moderation" },
+                { id: "gallery" as const, icon: <Camera className="h-4 w-4 text-[#d4af37]" />, label: "Wedding Gallery" },
+                { id: "stories" as const, icon: <BookOpen className="h-4 w-4 text-[#d4af37]" />, label: "Our Story" },
+                { id: "events" as const, icon: <Calendar className="h-4 w-4 text-[#d4af37]" />, label: "Wedding Events" },
+                { id: "faq" as const, icon: <MessageSquare className="h-4 w-4 text-[#d4af37]" />, label: "FAQ" },
+                { id: "settings" as const, icon: <SettingsIcon className="h-4 w-4 text-[#d4af37]" />, label: "Site Settings" },
+              ].map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => goToTab(item.id)}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-xs uppercase tracking-wider font-semibold transition-all ${
+                    activeTab === item.id ? "bg-slate-800 text-white border-l-4 border-[#d4af37]" : "hover:bg-slate-800/50 hover:text-white"
+                  }`}
+                >
+                  {item.icon}
+                  {item.label}
+                </button>
+              ))}
+            </nav>
           </div>
 
-          <nav className="space-y-1">
+          <div className="pt-6 border-t border-slate-800 flex justify-between items-center text-xs">
+            <a href="/" target="_blank" className="hover:text-white flex items-center gap-1.5">
+              <Globe className="h-3.5 w-3.5 text-primary" />
+              View Site
+              <ExternalLink className="h-3 w-3" />
+            </a>
             <button
-              onClick={() => setActiveTab("analytics")}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-xs uppercase tracking-wider font-semibold transition-all ${
-                activeTab === "analytics" ? "bg-slate-800 text-white border-l-4 border-[#d4af37]" : "hover:bg-slate-800/50 hover:text-white"
-              }`}
+              onClick={handleLogout}
+              className="text-slate-400 hover:text-white"
             >
-              <BarChart3 className="h-4 w-4 text-[#d4af37]" />
-              Analytics
+              Logout
             </button>
-            <button
-              onClick={() => setActiveTab("guests")}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-xs uppercase tracking-wider font-semibold transition-all ${
-                activeTab === "guests" ? "bg-slate-800 text-white border-l-4 border-[#d4af37]" : "hover:bg-slate-800/50 hover:text-white"
-              }`}
-            >
-              <Users className="h-4 w-4 text-[#d4af37]" />
-              Guest List
-            </button>
-            <button
-              onClick={() => setActiveTab("rsvp")}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-xs uppercase tracking-wider font-semibold transition-all ${
-                activeTab === "rsvp" ? "bg-slate-800 text-white border-l-4 border-[#d4af37]" : "hover:bg-slate-800/50 hover:text-white"
-              }`}
-            >
-              <ClipboardList className="h-4 w-4 text-[#d4af37]" />
-              RSVP Responses
-            </button>
-            <button
-              onClick={() => setActiveTab("wishes")}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-xs uppercase tracking-wider font-semibold transition-all ${
-                activeTab === "wishes" ? "bg-slate-800 text-white border-l-4 border-[#d4af37]" : "hover:bg-slate-800/50 hover:text-white"
-              }`}
-            >
-              <MessageSquare className="h-4 w-4 text-[#d4af37]" />
-              Wishes Moderation
-            </button>
-            <button
-              onClick={() => setActiveTab("gallery")}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-xs uppercase tracking-wider font-semibold transition-all ${
-                activeTab === "gallery" ? "bg-slate-800 text-white border-l-4 border-[#d4af37]" : "hover:bg-slate-800/50 hover:text-white"
-              }`}
-            >
-              <Camera className="h-4 w-4 text-[#d4af37]" />
-              Wedding Gallery
-            </button>
-            <button
-              onClick={() => setActiveTab("stories")}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-xs uppercase tracking-wider font-semibold transition-all ${
-                activeTab === "stories" ? "bg-slate-800 text-white border-l-4 border-[#d4af37]" : "hover:bg-slate-800/50 hover:text-white"
-              }`}
-            >
-              <BookOpen className="h-4 w-4 text-[#d4af37]" />
-              Our Story
-            </button>
-            <button
-              onClick={() => setActiveTab("events")}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-xs uppercase tracking-wider font-semibold transition-all ${
-                activeTab === "events" ? "bg-slate-800 text-white border-l-4 border-[#d4af37]" : "hover:bg-slate-800/50 hover:text-white"
-              }`}
-            >
-              <Calendar className="h-4 w-4 text-[#d4af37]" />
-              Wedding Events
-            </button>
-            <button
-              onClick={() => setActiveTab("faq")}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-xs uppercase tracking-wider font-semibold transition-all ${
-                activeTab === "faq" ? "bg-slate-800 text-white border-l-4 border-[#d4af37]" : "hover:bg-slate-800/50 hover:text-white"
-              }`}
-            >
-              <MessageSquare className="h-4 w-4 text-[#d4af37]" />
-              FAQ
-            </button>
-            <button
-              onClick={() => setActiveTab("settings")}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-xs uppercase tracking-wider font-semibold transition-all ${
-                activeTab === "settings" ? "bg-slate-800 text-white border-l-4 border-[#d4af37]" : "hover:bg-slate-800/50 hover:text-white"
-              }`}
-            >
-              <SettingsIcon className="h-4 w-4 text-[#d4af37]" />
-              Site Settings
-            </button>
-          </nav>
-        </div>
+          </div>
+        </aside>
 
-        <div className="pt-6 border-t border-slate-800 flex justify-between items-center text-xs">
-          <a href="/" target="_blank" className="hover:text-white flex items-center gap-1.5">
-            <Globe className="h-3.5 w-3.5 text-primary" />
-            View Site
-            <ExternalLink className="h-3 w-3" />
-          </a>
-          <button
-            onClick={handleLogout}
-            className="text-slate-400 hover:text-white"
-          >
-            Logout
-          </button>
-        </div>
-      </aside>
-
-      {/* Main Panel Content */}
-      <main className="flex-1 p-6 md:p-10 max-h-screen overflow-y-auto">
+        {/* Main Panel Content */}
+        <main className="flex-1 p-6 md:p-10 overflow-y-auto h-screen md:max-h-screen">
         {/* Tab Header */}
         <div className="flex items-center justify-between mb-8 pb-4 border-b border-slate-200">
           <div>
@@ -2766,6 +2757,7 @@ export default function AdminDashboard() {
           </div>
         )}
       </main>
+    </div>
 
       {/* WhatsApp Invite & Canvas Card Modal */}
       {sharingGuest && (
