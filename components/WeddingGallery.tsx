@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, ChevronLeft, ChevronRight, ZoomIn } from "lucide-react";
 import { useLanguage } from "../context/LanguageContext";
 import { getGalleryImages, GalleryImage } from "../lib/db";
+import { getSupabaseImageUrl } from "../lib/supabase";
 
 export const WeddingGallery: React.FC = () => {
   const { t } = useLanguage();
@@ -135,7 +136,7 @@ export const WeddingGallery: React.FC = () => {
             className="columns-2 sm:columns-2 md:columns-3 gap-4 px-2 space-y-4 max-w-5xl mx-auto"
           >
             <AnimatePresence mode="popLayout">
-              {displayedImages.map((img) => (
+              {displayedImages.map((img, index) => (
                 <motion.div
                   key={img.id || img.src}
                   layout
@@ -146,11 +147,16 @@ export const WeddingGallery: React.FC = () => {
                   className="relative break-inside-avoid rounded-xl overflow-hidden shadow-md group cursor-pointer border border-[#e5dfd1] dark:border-[#223830]"
                   onClick={() => openLightbox(img.src)}
                 >
-                  <img
-                    src={img.src}
+                  <Image
+                    src={getSupabaseImageUrl(img.src, 'thumb')}
                     alt={img.alt || "Wedding moment"}
-                    loading="lazy"
+                    width={600}
+                    height={index % 2 === 0 ? 450 : 600}
+                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 25vw"
                     className="w-full h-auto object-cover transition-transform duration-500 group-hover:scale-105"
+                    loading="lazy"
+                    placeholder="blur"
+                    blurDataURL="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxIiBoZWlnaHQ9IjEiIHZpZXdCb3g9IjAgMCAxIDEiPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9IiNlMmU4ZjAiLz48L3N2Zz4="
                   />
                   
                   {/* Overlay on Hover */}
@@ -224,14 +230,19 @@ export const WeddingGallery: React.FC = () => {
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
               transition={{ duration: 0.3 }}
-              className="max-w-4xl max-h-[85vh] overflow-hidden rounded-lg flex flex-col items-center"
+              className="w-full max-w-4xl max-h-[85vh] overflow-hidden rounded-lg flex flex-col items-center"
               onClick={(e) => e.stopPropagation()}
             >
-              <img
-                src={filteredImages[lightboxIndex].src}
-                alt={filteredImages[lightboxIndex].alt || "Wedding moment"}
-                className="max-w-full max-h-[80vh] object-contain rounded-lg shadow-2xl"
-              />
+              <div className="relative w-full h-[65vh] sm:h-[80vh]">
+                <Image
+                  src={getSupabaseImageUrl(filteredImages[lightboxIndex].src, 'full')}
+                  alt={filteredImages[lightboxIndex].alt || "Wedding moment"}
+                  fill
+                  sizes="(max-width: 1024px) 100vw, 1280px"
+                  priority
+                  className="object-contain rounded-lg shadow-2xl"
+                />
+              </div>
               <p className="text-white/60 text-xs mt-3 uppercase tracking-widest">
                 {filteredImages[lightboxIndex].alt || "Wedding moment"}
               </p>

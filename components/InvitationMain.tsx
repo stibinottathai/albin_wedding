@@ -8,6 +8,8 @@ import {
   Menu, X, MousePointer2
 } from "lucide-react";
 import { useLanguage } from "../context/LanguageContext";
+import Image from "next/image";
+import { getSupabaseImageUrl } from "../lib/supabase";
 import {
   getWeddingInfo, getEvents, updateRSVP, incrementInviteOpened,
   getStories, getFaqs, WeddingInfo, WeddingEvent, Guest, StoryMilestone, FaqItem
@@ -50,9 +52,12 @@ function ParallaxHero({
     <section ref={ref} className="relative min-h-[100svh] flex items-center justify-center overflow-hidden py-24 md:py-28 scroll-mt-24" id="home">
       {/* Background Image with Parallax */}
       <motion.div style={{ y: bgY }} className="absolute inset-0 scale-[1.12] z-0">
-        <img
+        <Image
           src="https://images.unsplash.com/photo-1519225424757-3f303f8a483a?q=80&w=2400"
           alt={`${weddingInfo?.groomName} & ${weddingInfo?.brideName}`}
+          fill
+          priority
+          sizes="100vw"
           className="w-full h-full object-cover"
         />
         {/* Soft overlay to ensure readability */}
@@ -562,9 +567,11 @@ export const InvitationMain: React.FC<InvitationMainProps> = ({ guest, initialWe
                       <div className="bg-[var(--surface-container-low)] rounded-2xl p-6 border border-[var(--border-warm)]/30 shadow-sm hover:shadow-md transition-shadow duration-300">
                         {/* Image representation for Mobile & Desktop inside */}
                         <div className="relative overflow-hidden rounded-xl aspect-[16/10] bg-[var(--parchment)] mb-6 shadow-sm border border-[var(--border-warm)]/20">
-                          <img
-                            src={item.imageUrl}
+                          <Image
+                            src={getSupabaseImageUrl(item.imageUrl, 'thumb')}
                             alt={language === "en" ? item.titleEn : item.titleMl}
+                            fill
+                            sizes="(max-width: 768px) 100vw, 400px"
                             className="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-700 hover:scale-[1.04]"
                           />
                           <div className="absolute inset-0 bg-[var(--sage-dark)]/5 pointer-events-none" />
@@ -607,7 +614,13 @@ export const InvitationMain: React.FC<InvitationMainProps> = ({ guest, initialWe
                     <div>
                       {/* Image header */}
                       <div className="relative overflow-hidden h-44 border-b border-[var(--border-warm)]/20">
-                        <img src={ev.imageUrl} alt={ev.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                        <Image
+                          src={getSupabaseImageUrl(ev.imageUrl, 'thumb')}
+                          alt={ev.title}
+                          fill
+                          sizes="(max-width: 640px) 100vw, 300px"
+                          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                        />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
                         <div className="absolute bottom-3 left-4">
                           <span className="bg-[var(--cream)] text-[var(--primary)] sans text-[9px] uppercase tracking-widest px-2.5 py-1 rounded-full font-bold shadow-sm">
