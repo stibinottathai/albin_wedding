@@ -441,6 +441,23 @@ export const saveEvent = async (event: WeddingEvent): Promise<void> => {
   mockDb.saveEvents(events);
 };
 
+export const deleteEvent = async (id: string): Promise<void> => {
+  if (isSupabaseConfigured) {
+    try {
+      const { error } = await supabase
+        .from("events")
+        .delete()
+        .eq("id", id);
+      if (!error) return;
+    } catch (e) {
+      console.error("Supabase deleteEvent error:", e);
+    }
+  }
+  const events = mockDb.getEvents();
+  const filtered = events.filter(e => e.id !== id);
+  mockDb.saveEvents(filtered);
+};
+
 export const getGuest = async (guestId: string): Promise<Guest | null> => {
   if (isSupabaseConfigured) {
     try {

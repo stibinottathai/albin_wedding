@@ -20,7 +20,8 @@ import {
   Filter,
   Camera,
   BookOpen,
-  Edit
+  Edit,
+  Calendar
 } from "lucide-react";
 import { 
   getWeddingInfo, 
@@ -36,11 +37,15 @@ import {
   getStories,
   saveStory,
   deleteStory,
+  getEvents,
+  saveEvent,
+  deleteEvent,
   WeddingInfo, 
   Guest, 
   Analytics,
   GalleryImage,
-  StoryMilestone
+  StoryMilestone,
+  WeddingEvent
 } from "../../lib/db";
 import { supabase, isSupabaseConfigured } from "../../lib/supabase";
 
@@ -61,7 +66,7 @@ export default function AdminDashboard() {
   const [password, setPassword] = useState("");
   const [authError, setAuthError] = useState("");
 
-  const [activeTab, setActiveTab] = useState<"analytics" | "rsvp" | "guests" | "wishes" | "settings" | "gallery" | "stories">("analytics");
+  const [activeTab, setActiveTab] = useState<"analytics" | "rsvp" | "guests" | "wishes" | "settings" | "gallery" | "stories" | "events">("analytics");
   const [rsvpFilter, setRsvpFilter] = useState<"all" | "accepted" | "declined" | "pending">("all");
   const [weddingInfo, setWeddingInfo] = useState<WeddingInfo | null>(null);
   const [guests, setGuests] = useState<Guest[]>([]);
@@ -69,6 +74,52 @@ export default function AdminDashboard() {
   const [analytics, setAnalytics] = useState<Analytics | null>(null);
   const [galleryImages, setGalleryImages] = useState<GalleryImage[]>([]);
   const [storyMilestones, setStoryMilestones] = useState<StoryMilestone[]>([]);
+  const [events, setEvents] = useState<WeddingEvent[]>([]);
+  
+  // Form states for Wedding Events
+  const [editingEventId, setEditingEventId] = useState<string | null>(null);
+  const [newEventTitle, setNewEventTitle] = useState("");
+  const [newEventDate, setNewEventDate] = useState("");
+  const [newEventTime, setNewEventTime] = useState(""); // Stores 24h format "HH:MM"
+  const [newEventVenue, setNewEventVenue] = useState("");
+  const [newEventDescription, setNewEventDescription] = useState("");
+  const [newEventImageUrl, setNewEventImageUrl] = useState("");
+  const [newEventImageFile, setNewEventImageFile] = useState<File | null>(null);
+  const [newEventGoogleCalendarUrl, setNewEventGoogleCalendarUrl] = useState("");
+  const [eventUploadType, setEventUploadType] = useState<"file" | "url">("file");
+  const [eventUploading, setEventUploading] = useState(false);
+  const [eventSuccess, setEventSuccess] = useState(false);
+  const [eventError, setEventError] = useState("");
+
+  const eventFormRef = React.useRef<HTMLDivElement>(null);
+
+  // Time conversion helpers
+  const convert24to12 = (time24: string): string => {
+    if (!time24) return "";
+    const [hoursStr, minutesStr] = time24.split(":");
+    let hours = parseInt(hoursStr, 10);
+    const minutes = parseInt(minutesStr, 10);
+    const ampm = hours >= 12 ? "PM" : "AM";
+    hours = hours % 12;
+    hours = hours ? hours : 12;
+    const minutesFormatted = minutes < 10 ? "0" + minutes : minutes;
+    const hoursFormatted = hours < 10 ? "0" + hours : hours;
+    return `${hoursFormatted}:${minutesFormatted} ${ampm}`;
+  };
+
+  const convert12to24 = (time12: string): string => {
+    if (!time12) return "";
+    const m = time12.match(/(\d+):(\d+)\s*(AM|PM)/i);
+    if (!m) return "";
+    let hours = parseInt(m[1], 10);
+    const minutes = parseInt(m[2], 10);
+    const ampm = m[3].toUpperCase();
+    if (ampm === "PM" && hours < 12) hours += 12;
+    if (ampm === "AM" && hours === 12) hours = 0;
+    const hoursFormatted = hours < 10 ? "0" + hours : hours;
+    const minutesFormatted = minutes < 10 ? "0" + minutes : minutes;
+    return `${hoursFormatted}:${minutesFormatted}`;
+  };
   
   // Form states for Our Story milestones
   const [editingMilestoneId, setEditingMilestoneId] = useState<string | null>(null);
@@ -249,6 +300,8 @@ export default function AdminDashboard() {
       if (Array.isArray(storiesList)) {
         setNewStoryOrderIndex(storiesList.length + 1);
       }
+      const eventsList = await getEvents();
+      setEvents(Array.isArray(eventsList) ? eventsList : []);
     } catch (err) {
       console.error("Failed to load admin dashboard data:", err);
     }
@@ -829,6 +882,169 @@ export default function AdminDashboard() {
     }
   };
 
+  // Wedding Events: Upload and Save event
+  const handleSaveEvent = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setEventError("");
+    setEventSuccess(false);
+
+    if (!newEventTitle.trim()) {
+      setEventError("Please enter an event title.");
+      return;
+    }
+    if (!newEventDate.trim()) {
+      setEventError("Please select an event date.");
+      return;
+    }
+    if (!newEventTime.trim()) {
+      setEventError("Please select an event time.");
+      return;
+    }
+    if (!newEventVenue.trim()) {
+      setEventError("Please enter a venue.");
+      return;
+    }
+    if (!newEventDescription.trim()) {
+      setEventError("Please enter a description.");
+      return;
+    }
+
+    let imageUrl = newEventImageUrl.trim();
+
+    if (eventUploadType === "file" && newEventImageFile) {
+      setEventUploading(true);
+      try {
+        if (isSupabaseConfigured) {
+          const fileExt = newEventImageFile.name.split(".").pop();
+          const fileName = `event_${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
+          const filePath = `${fileName}`;
+
+          const { error: uploadErr } = await supabase.storage
+            .from("gallery")
+            .upload(filePath, newEventImageFile, {
+              cacheControl: "3600",
+              upsert: false
+            });
+
+          if (uploadErr) {
+            throw new Error(`Supabase Storage upload failed: ${uploadErr.message}`);
+          }
+
+          const { data: { publicUrl } } = supabase.storage
+            .from("gallery")
+            .getPublicUrl(filePath);
+
+          imageUrl = publicUrl;
+        } else {
+          // Local fallback: convert to base64
+          imageUrl = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(newEventImageFile);
+            reader.onload = () => resolve(reader.result as string);
+            reader.onerror = (err) => reject(err);
+          });
+        }
+      } catch (err: any) {
+        console.error(err);
+        setEventError(err.message || "Failed to upload image. Please try pasting a URL instead.");
+        setEventUploading(false);
+        return;
+      }
+    } else if (eventUploadType === "file" && !editingEventId) {
+      setEventError("Please select an image file to upload.");
+      return;
+    }
+
+    try {
+      const eventTime12 = convert24to12(newEventTime);
+      const event: WeddingEvent = {
+        id: editingEventId || `event-${Math.random().toString(36).substring(2, 9)}`,
+        title: newEventTitle.trim(),
+        date: newEventDate.trim(),
+        time: eventTime12,
+        venue: newEventVenue.trim(),
+        description: newEventDescription.trim(),
+        imageUrl: imageUrl || "https://images.unsplash.com/photo-1519167758481-83f550bb49b3?q=80&w=600",
+        googleCalendarUrl: newEventGoogleCalendarUrl.trim() || undefined
+      };
+
+      await saveEvent(event);
+      
+      // Reset form
+      setEditingEventId(null);
+      setNewEventTitle("");
+      setNewEventDate("");
+      setNewEventTime("");
+      setNewEventVenue("");
+      setNewEventDescription("");
+      setNewEventImageUrl("");
+      setNewEventImageFile(null);
+      setNewEventGoogleCalendarUrl("");
+      setEventUploadType("file");
+      
+      const fileInput = document.getElementById("event-file-input") as HTMLInputElement;
+      if (fileInput) fileInput.value = "";
+
+      setEventSuccess(true);
+      setTimeout(() => setEventSuccess(false), 3000);
+      loadAdminData();
+    } catch (err: any) {
+      setEventError(err.message || "Failed to save event.");
+    } finally {
+      setEventUploading(false);
+    }
+  };
+
+  const handleEditEvent = (event: WeddingEvent) => {
+    setEditingEventId(event.id);
+    setNewEventTitle(event.title || "");
+    setNewEventDate(event.date || "");
+    setNewEventTime(convert12to24(event.time) || "");
+    setNewEventVenue(event.venue || "");
+    setNewEventDescription(event.description || "");
+    setNewEventImageUrl(event.imageUrl || "");
+    setNewEventGoogleCalendarUrl(event.googleCalendarUrl || "");
+    setEventUploadType("url");
+
+    // Smoothly scroll to the Event Form container
+    eventFormRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  const handleCancelEditEvent = () => {
+    setEditingEventId(null);
+    setNewEventTitle("");
+    setNewEventDate("");
+    setNewEventTime("");
+    setNewEventVenue("");
+    setNewEventDescription("");
+    setNewEventImageUrl("");
+    setNewEventImageFile(null);
+    setNewEventGoogleCalendarUrl("");
+    setEventUploadType("file");
+    
+    const fileInput = document.getElementById("event-file-input") as HTMLInputElement;
+    if (fileInput) fileInput.value = "";
+  };
+
+  const handleDeleteEvent = async (id: string, imageUrl: string) => {
+    if (confirm("Are you sure you want to delete this event?")) {
+      try {
+        await deleteEvent(id);
+
+        // Delete from storage if it is a Supabase object
+        if (isSupabaseConfigured && imageUrl.includes("/storage/v1/object/public/gallery/")) {
+          const fileName = imageUrl.split("/gallery/").pop();
+          if (fileName) {
+            await supabase.storage.from("gallery").remove([fileName]);
+          }
+        }
+        loadAdminData();
+      } catch (err) {
+        console.error("Failed to delete event:", err);
+      }
+    }
+  };
+
   // Handle setting updates locally before submit
   const handleSettingChange = (field: keyof WeddingInfo, value: string) => {
     if (!weddingInfo) return;
@@ -981,6 +1197,15 @@ export default function AdminDashboard() {
               Our Story
             </button>
             <button
+              onClick={() => setActiveTab("events")}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-xs uppercase tracking-wider font-semibold transition-all ${
+                activeTab === "events" ? "bg-slate-800 text-white border-l-4 border-[#d4af37]" : "hover:bg-slate-800/50 hover:text-white"
+              }`}
+            >
+              <Calendar className="h-4 w-4 text-[#d4af37]" />
+              Wedding Events
+            </button>
+            <button
               onClick={() => setActiveTab("settings")}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-xs uppercase tracking-wider font-semibold transition-all ${
                 activeTab === "settings" ? "bg-slate-800 text-white border-l-4 border-[#d4af37]" : "hover:bg-slate-800/50 hover:text-white"
@@ -1013,7 +1238,13 @@ export default function AdminDashboard() {
         <div className="flex items-center justify-between mb-8 pb-4 border-b border-slate-200">
           <div>
             <h1 className="text-2xl font-serif font-bold text-slate-900 capitalize">
-              {activeTab === "settings" ? "Site Settings" : activeTab}
+              {activeTab === "settings" ? "Site Settings" : 
+               activeTab === "rsvp" ? "RSVP Responses" : 
+               activeTab === "wishes" ? "Wishes Moderation" : 
+               activeTab === "gallery" ? "Wedding Gallery" : 
+               activeTab === "stories" ? "Our Story" : 
+               activeTab === "events" ? "Wedding Events" : 
+               activeTab}
             </h1>
             <p className="text-xs text-slate-500 mt-1">Manage all wedding content, RSVPs, and configurations.</p>
           </div>
@@ -1922,6 +2153,237 @@ export default function AdminDashboard() {
                           onClick={() => handleDeleteStory(milestone.id, milestone.imageUrl)}
                           className="p-1.5 text-rose-500 hover:bg-rose-50 rounded-lg transition-colors border border-transparent hover:border-rose-100"
                           title="Delete Milestone"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Tab: Wedding Events */}
+        {activeTab === "events" && (
+          <div className="space-y-8 animate-fadeIn">
+            {/* Add/Edit Event Form */}
+            <div ref={eventFormRef} className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-200">
+              <h3 className="font-serif font-bold text-lg text-slate-900 mb-4 border-b pb-2">
+                {editingEventId ? "Edit Scheduled Event" : "Schedule New Event"}
+              </h3>
+              
+              <form onSubmit={handleSaveEvent} className="space-y-6">
+                {/* Upload Type toggle */}
+                <div className="flex gap-6">
+                  <label className="flex items-center gap-2 text-xs font-semibold uppercase text-slate-600 cursor-pointer">
+                    <input 
+                      type="radio" 
+                      name="eventUploadType" 
+                      checked={eventUploadType === "file"}
+                      onChange={() => setEventUploadType("file")}
+                      className="accent-slate-900" 
+                    />
+                    Upload Image File
+                  </label>
+                  <label className="flex items-center gap-2 text-xs font-semibold uppercase text-slate-600 cursor-pointer">
+                    <input 
+                      type="radio" 
+                      name="eventUploadType" 
+                      checked={eventUploadType === "url"}
+                      onChange={() => setEventUploadType("url")}
+                      className="accent-slate-900" 
+                    />
+                    Image URL (External)
+                  </label>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {/* Event Title */}
+                  <div>
+                    <label className="block text-xs uppercase font-bold text-slate-400 mb-1">Event Title</label>
+                    <input
+                      type="text"
+                      required
+                      value={newEventTitle || ""}
+                      onChange={(e) => setNewEventTitle(e.target.value)}
+                      placeholder="e.g. Holy Matrimony"
+                      className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm"
+                    />
+                  </div>
+
+                  {/* Event Date */}
+                  <div>
+                    <label className="block text-xs uppercase font-bold text-slate-400 mb-1">Event Date</label>
+                    <input
+                      type="date"
+                      required
+                      value={newEventDate || ""}
+                      onChange={(e) => setNewEventDate(e.target.value)}
+                      className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm bg-white"
+                    />
+                  </div>
+
+                  {/* Event Time */}
+                  <div>
+                    <label className="block text-xs uppercase font-bold text-slate-400 mb-1">Event Time</label>
+                    <input
+                      type="time"
+                      required
+                      value={newEventTime || ""}
+                      onChange={(e) => setNewEventTime(e.target.value)}
+                      className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm bg-white"
+                    />
+                  </div>
+
+                  {/* Event Venue */}
+                  <div className="md:col-span-2">
+                    <label className="block text-xs uppercase font-bold text-slate-400 mb-1">Venue / Location</label>
+                    <input
+                      type="text"
+                      required
+                      value={newEventVenue || ""}
+                      onChange={(e) => setNewEventVenue(e.target.value)}
+                      placeholder="e.g. St. Mary's Cathedral, Kochi"
+                      className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm"
+                    />
+                  </div>
+
+                  {/* Image Source Input */}
+                  {eventUploadType === "file" ? (
+                    <div key="event-file-input-wrapper">
+                      <label className="block text-xs uppercase font-bold text-slate-400 mb-1">Upload Event Thumbnail</label>
+                      <input
+                        key="event-file-input-node"
+                        id="event-file-input"
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          if (e.target.files && e.target.files[0]) {
+                            setNewEventImageFile(e.target.files[0]);
+                          }
+                        }}
+                        className="w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200"
+                      />
+                    </div>
+                  ) : (
+                    <div key="event-url-input-wrapper">
+                      <label className="block text-xs uppercase font-bold text-slate-400 mb-1">Image URL</label>
+                      <input
+                        key="event-url-input-node"
+                        type="text"
+                        value={newEventImageUrl || ""}
+                        onChange={(e) => setNewEventImageUrl(e.target.value)}
+                        placeholder="https://images.unsplash.com/photo-..."
+                        className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm"
+                      />
+                    </div>
+                  )}
+
+                  {/* Google Calendar Link (Optional) */}
+                  <div className="md:col-span-3">
+                    <label className="block text-xs uppercase font-bold text-slate-400 mb-1">Custom Google Calendar Link (Optional)</label>
+                    <input
+                      type="text"
+                      value={newEventGoogleCalendarUrl || ""}
+                      onChange={(e) => setNewEventGoogleCalendarUrl(e.target.value)}
+                      placeholder="Leave blank to automatically auto-generate from event details"
+                      className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm"
+                    />
+                  </div>
+
+                  {/* Description */}
+                  <div className="md:col-span-3">
+                    <label className="block text-xs uppercase font-bold text-slate-400 mb-1">Event Description</label>
+                    <textarea
+                      rows={3}
+                      required
+                      value={newEventDescription || ""}
+                      onChange={(e) => setNewEventDescription(e.target.value)}
+                      placeholder="Describe what will happen at the event..."
+                      className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm resize-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between border-t pt-4">
+                  <div>
+                    {eventError && <p className="text-xs text-rose-600 font-medium">{eventError}</p>}
+                    {eventSuccess && <p className="text-xs text-emerald-600 font-medium">Event saved successfully!</p>}
+                  </div>
+
+                  <div className="flex gap-2">
+                    {editingEventId && (
+                      <button
+                        type="button"
+                        onClick={handleCancelEditEvent}
+                        className="px-5 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg text-xs uppercase tracking-wider font-semibold transition-all cursor-pointer"
+                      >
+                        Cancel
+                      </button>
+                    )}
+                    <button
+                      type="submit"
+                      disabled={eventUploading}
+                      className="px-6 py-2.5 bg-slate-900 hover:bg-slate-800 disabled:bg-slate-400 text-white rounded-lg text-xs uppercase tracking-wider font-semibold flex items-center gap-1.5 transition-all shadow-sm cursor-pointer"
+                    >
+                      {eventUploading ? (
+                        <>
+                          <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          Uploading...
+                        </>
+                      ) : (
+                        <>
+                          <Plus className="h-4 w-4" />
+                          {editingEventId ? "Save Event" : "Schedule Event"}
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </form>
+            </div>
+
+            {/* List of current events */}
+            <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-200">
+              <h3 className="font-serif font-bold text-lg text-slate-900 mb-6 border-b pb-2">Scheduled Events ({events.length})</h3>
+
+              {events.length === 0 ? (
+                <div className="text-center py-12 text-slate-400 italic">No events scheduled yet. Add one above!</div>
+              ) : (
+                <div className="space-y-4">
+                  {events.map((ev) => (
+                    <div key={ev.id} className="flex flex-col md:flex-row items-start md:items-center justify-between p-4 border border-slate-200 rounded-xl hover:bg-slate-50 transition-all gap-4">
+                      {/* Thumbnail & details */}
+                      <div className="flex items-center gap-4">
+                        <div className="w-16 h-12 rounded-lg overflow-hidden bg-slate-200 shrink-0">
+                          <img src={ev.imageUrl} alt={ev.title} className="w-full h-full object-cover" />
+                        </div>
+                        <div>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="font-semibold text-slate-900 font-serif text-sm">{ev.title}</span>
+                            <span className="bg-amber-50 text-amber-800 px-2 py-0.5 rounded text-[9px] font-semibold border border-amber-200">
+                              {ev.date} @ {ev.time}
+                            </span>
+                            <span className="text-slate-400 text-xs truncate max-w-[200px]">{ev.venue}</span>
+                          </div>
+                          <p className="text-xs text-slate-500 line-clamp-1 mt-0.5">{ev.description}</p>
+                        </div>
+                      </div>
+
+                      {/* Actions */}
+                      <div className="flex items-center gap-3 shrink-0 ml-auto md:ml-0">
+                        <button
+                          onClick={() => handleEditEvent(ev)}
+                          className="px-3 py-1.5 border border-slate-200 hover:border-slate-400 text-slate-600 hover:text-slate-900 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDeleteEvent(ev.id, ev.imageUrl)}
+                          className="p-1.5 text-rose-500 hover:bg-rose-50 rounded-lg transition-colors border border-transparent hover:border-rose-100 cursor-pointer"
+                          title="Delete Event"
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>
