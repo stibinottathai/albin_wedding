@@ -5,7 +5,7 @@ import { motion, AnimatePresence, useScroll, useTransform } from "framer-motion"
 import {
   Calendar, MapPin, Phone, MessageCircle, Mail, Send,
   ChevronDown, Check, Users, User, ArrowRight, ExternalLink, Heart,
-  Menu, X
+  Menu, X, MousePointer2
 } from "lucide-react";
 import { useLanguage } from "../context/LanguageContext";
 import {
@@ -97,48 +97,72 @@ function ParallaxHero({
         </motion.p>
 
         {/* Tap to Reveal Date */}
-        <div className="w-full flex flex-col items-center justify-center pointer-events-auto">
+        <div className="w-full flex flex-col items-center justify-center pointer-events-auto mt-8">
           <AnimatePresence mode="wait">
             {!isDateRevealed ? (
               <motion.div
                 key="reveal-btn-wrapper"
-                className="flex flex-col items-center gap-3.5"
+                className="flex flex-col items-center gap-6"
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                transition={{ duration: 0.4 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.5, ease: "easeOut" }}
               >
-                <motion.button
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{
-                    opacity: 1,
-                    scale: [1, 1.04, 1],
-                    boxShadow: [
-                      "0 4px 14px 0 rgba(115, 92, 0, 0.25)",
-                      "0 8px 24px 6px rgba(115, 92, 0, 0.45)",
-                      "0 4px 14px 0 rgba(115, 92, 0, 0.25)"
-                    ]
-                  }}
-                  whileHover={{ scale: 1.06 }}
-                  whileTap={{ scale: 0.95 }}
-                  transition={{
-                    opacity: { duration: 0.4 },
-                    scale: { repeat: Infinity, duration: 2, ease: "easeInOut" },
-                    boxShadow: { repeat: Infinity, duration: 2, ease: "easeInOut" }
-                  }}
-                  onClick={handleDateReveal}
-                  className="inline-flex items-center gap-3 bg-[var(--primary)] text-white sans text-xs uppercase tracking-widest px-8 py-4 rounded hover:bg-[var(--primary-container)] hover:text-[var(--charcoal)] transition-all duration-300 font-semibold cursor-pointer z-20"
-                >
-                  <Calendar className="w-4 h-4 animate-bounce" />
-                  {t("revealDate")}
-                </motion.button>
+                <div className="relative group perspective-1000">
+                  <motion.button
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{
+                      opacity: 1,
+                      scale: 1,
+                      boxShadow: [
+                        "0 10px 40px -10px rgba(115, 92, 0, 0.3)",
+                        "0 15px 50px -5px rgba(115, 92, 0, 0.5)",
+                        "0 10px 40px -10px rgba(115, 92, 0, 0.3)"
+                      ]
+                    }}
+                    whileHover={{ scale: 1.03, translateY: -2 }}
+                    whileTap={{ scale: 0.97 }}
+                    transition={{
+                      opacity: { duration: 0.5 },
+                      scale: { type: "spring", stiffness: 400, damping: 17 },
+                      boxShadow: { repeat: Infinity, duration: 3, ease: "easeInOut" }
+                    }}
+                    onClick={handleDateReveal}
+                    className="relative overflow-hidden inline-flex items-center gap-4 bg-gradient-to-br from-[#c59b27] to-[#735c00] text-white sans uppercase tracking-[0.2em] px-10 py-5 rounded-xl transition-all duration-300 font-bold cursor-pointer z-20 shadow-xl border border-white/20"
+                  >
+                    {/* Shimmer effect */}
+                    <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/30 to-transparent group-hover:animate-shimmer" />
+                    
+                    <Calendar className="w-5 h-5 group-hover:scale-110 transition-transform duration-300" />
+                    <span className="text-sm">{t("revealDate")}</span>
+                  </motion.button>
+                  
+                  {/* Clicking Hand Indicator */}
+                  <motion.div
+                    animate={{ 
+                      y: [0, -12, 0],
+                      scale: [1, 0.9, 1]
+                    }}
+                    transition={{ 
+                      repeat: Infinity, 
+                      duration: 1.5, 
+                      ease: "easeInOut" 
+                    }}
+                    className="absolute -bottom-8 -right-6 text-[#735c00] z-30 drop-shadow-md pointer-events-none"
+                  >
+                    <MousePointer2 className="w-8 h-8 fill-white/80" />
+                  </motion.div>
+                </div>
+
                 <motion.p
-                  initial={{ opacity: 0, y: 5 }}
-                  animate={{ opacity: [0.45, 0.95, 0.45] }}
-                  transition={{ repeat: Infinity, duration: 2, ease: "easeInOut", delay: 0.5 }}
-                  className="sans text-[10px] uppercase tracking-[0.25em] text-[var(--primary)] font-bold mt-1"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: 0.3 }}
+                  className="sans text-xs uppercase tracking-[0.3em] text-[#735c00] font-semibold mt-4 flex items-center gap-2"
                 >
-                  ✦ {t("revealDateGuide")} ✦
+                  <span className="w-8 h-[1px] bg-[#c59b27]/40 block"></span>
+                  {t("revealDateGuide")}
+                  <span className="w-8 h-[1px] bg-[#c59b27]/40 block"></span>
                 </motion.p>
               </motion.div>
             ) : (
