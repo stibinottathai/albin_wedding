@@ -660,7 +660,14 @@ export const InvitationMain: React.FC<InvitationMainProps> = ({ guest }) => {
                 </div>
 
                 <div className="md:col-span-7 min-h-[360px] rounded-3xl overflow-hidden border border-[var(--border-warm)]/30 shadow-md">
-                  <iframe src={weddingInfo.googleMapEmbedUrl} width="100%" height="100%"
+                  <iframe src={(() => {
+                    const embed = weddingInfo.googleMapEmbedUrl || "";
+                    if (embed.trim().startsWith("<iframe")) {
+                      const match = embed.match(/src="([^"]+)"/);
+                      return match ? match[1] : embed;
+                    }
+                    return embed;
+                  })()} width="100%" height="100%"
                     style={{ border: 0, minHeight: "360px" }} allowFullScreen loading="lazy"
                     referrerPolicy="no-referrer-when-downgrade" title="Venue Map" />
                 </div>
