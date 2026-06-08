@@ -31,6 +31,7 @@ import {
   Wish, 
   Analytics 
 } from "../../lib/db";
+import { supabase, isSupabaseConfigured } from "../../lib/supabase";
 
 export default function AdminDashboard() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -53,6 +54,9 @@ export default function AdminDashboard() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
+  const [authLoading, setAuthLoading] = useState(true);
+  const [user, setUser] = useState<any>(null);
+
   // Authenticate Admin
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,13 +71,89 @@ export default function AdminDashboard() {
     }
   };
 
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const authed = sessionStorage.getItem("admin_authed");
-      if (authed === "true") {
-        setIsAuthenticated(true);
+  // Authenticate Admin via Google OAuth
+  const handleGoogleLogin = async () => {
+    setAuthError("");
+    try {
+      const redirectTo = window.location.origin + "/admin";
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo,
+        },
+      });
+      if (error) {
+        setAuthError(error.message);
       }
+    } catch (err: any) {
+      setAuthError(err.message || "An error occurred during Google sign in.");
     }
+  };
+
+  const handleLogout = async () => {
+    if (isSupabaseConfigured) {
+      await supabase.auth.signOut();
+    }
+    sessionStorage.removeItem("admin_authed");
+    setIsAuthenticated(false);
+    setUser(null);
+  };
+
+  useEffect(() => {
+    if (!isSupabaseConfigured) {
+      setAuthLoading(false);
+      if (typeof window !== "undefined") {
+        const authed = sessionStorage.getItem("admin_authed");
+        if (authed === "true") {
+          setIsAuthenticated(true);
+        }
+      }
+      return;
+    }
+
+    const checkSession = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          if (session.user.email === "stibinaugustine3047@gmail.com") {
+            setUser(session.user);
+            setIsAuthenticated(true);
+          } else {
+            setAuthError(`Unauthorized email: ${session.user.email}`);
+            await supabase.auth.signOut();
+          }
+        }
+      } catch (err) {
+        console.error("Auth check failed:", err);
+      } finally {
+        setAuthLoading(false);
+      }
+    };
+
+    checkSession();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (session?.user) {
+        if (session.user.email === "stibinaugustine3047@gmail.com") {
+          setUser(session.user);
+          setIsAuthenticated(true);
+          setAuthError("");
+        } else {
+          setAuthError(`Unauthorized email: ${session.user.email}`);
+          setIsAuthenticated(false);
+          setUser(null);
+          await supabase.auth.signOut();
+        }
+      } else {
+        setUser(null);
+        setIsAuthenticated(false);
+      }
+      setAuthLoading(false);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   // Load Admin Data
@@ -188,6 +268,17 @@ export default function AdminDashboard() {
     });
   };
 
+  if (authLoading) {
+    return (
+      <div className="fixed inset-0 bg-[#0f1c18] flex items-center justify-center px-4">
+        <div className="text-center">
+          <div className="w-10 h-10 border-4 border-[#d4af37] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-xs text-[#d4af37] font-semibold tracking-widest uppercase">Checking Authorization...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (!isAuthenticated) {
     return (
       <div className="fixed inset-0 bg-[#0f1c18] flex items-center justify-center px-4">
@@ -196,8 +287,44 @@ export default function AdminDashboard() {
             <Lock className="h-6 w-6 animate-pulse" />
           </div>
           <h1 className="font-serif text-2xl text-white font-bold mb-2">Admin Dashboard</h1>
-          <p className="text-xs text-muted-foreground mb-6">Enter password to manage invitations & RSVPs.</p>
+          <p className="text-xs text-muted-foreground mb-6">Sign in to manage invitations & RSVPs.</p>
           
+          {isSupabaseConfigured ? (
+            <div className="space-y-4">
+              <button
+                onClick={handleGoogleLogin}
+                type="button"
+                className="w-full py-3 bg-white hover:bg-slate-100 text-slate-900 border border-slate-200 font-semibold text-xs uppercase tracking-widest rounded-xl transition-all flex items-center justify-center gap-2.5 cursor-pointer shadow-sm mb-4"
+              >
+                <svg className="h-4 w-4" viewBox="0 0 24 24">
+                  <path
+                    fill="#EA4335"
+                    d="M12 5.04c1.66 0 3.2.57 4.38 1.69l3.27-3.27C17.67 1.48 14.98 1 12 1 7.35 1 3.37 3.67 1.39 7.56l3.85 2.99C6.16 7.42 8.87 5.04 12 5.04z"
+                  />
+                  <path
+                    fill="#4285F4"
+                    d="M23.49 12.27c0-.81-.07-1.59-.2-2.36H12v4.51h6.46c-.28 1.46-1.1 2.69-2.33 3.51v2.91h3.77c2.2-2.03 3.59-5.01 3.59-8.57z"
+                  />
+                  <path
+                    fill="#FBBC05"
+                    d="M5.24 14.45c-.25-.76-.39-1.57-.39-2.45s.14-1.69.39-2.45L1.39 6.56C.5 8.2.01 10.04.01 12c0 1.96.49 3.8 1.38 5.44l3.85-2.99z"
+                  />
+                  <path
+                    fill="#34A853"
+                    d="M12 23c3.24 0 5.97-1.07 7.96-2.91l-3.77-2.91c-1.05.7-2.4 1.12-4.19 1.12-3.13 0-5.84-2.38-6.76-5.51l-3.85 2.99C3.37 20.33 7.35 23 12 23z"
+                  />
+                </svg>
+                Sign in with Google
+              </button>
+              {authError && <p className="text-xs text-red-400 mt-2 mb-4">{authError}</p>}
+              
+              <div className="relative my-6 flex items-center justify-center">
+                <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-emerald-950/60"></div></div>
+                <span className="relative bg-[#0f1c18] px-3 text-[10px] uppercase text-emerald-700 tracking-wider font-semibold">Or Password</span>
+              </div>
+            </div>
+          ) : null}
+
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
               <input
@@ -208,7 +335,7 @@ export default function AdminDashboard() {
                 placeholder="Enter password..."
                 className="w-full px-4 py-3 rounded-xl border border-emerald-900 bg-emerald-950/50 text-white placeholder-emerald-700 focus:outline-none focus:ring-1 focus:ring-[#d4af37] text-sm text-center"
               />
-              {authError && <p className="text-xs text-red-400 mt-2">{authError}</p>}
+              {!isSupabaseConfigured && authError && <p className="text-xs text-red-400 mt-2">{authError}</p>}
             </div>
             <button
               type="submit"
@@ -284,10 +411,7 @@ export default function AdminDashboard() {
             <ExternalLink className="h-3 w-3" />
           </a>
           <button
-            onClick={() => {
-              sessionStorage.removeItem("admin_authed");
-              setIsAuthenticated(false);
-            }}
+            onClick={handleLogout}
             className="text-slate-400 hover:text-white"
           >
             Logout
