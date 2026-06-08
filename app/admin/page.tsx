@@ -749,6 +749,33 @@ export default function AdminDashboard() {
     link.click();
   };
 
+  // Copy invitation card image to clipboard
+  const handleCopyCardImage = async () => {
+    if (!canvasRef.current || !sharingGuest) return;
+    try {
+      canvasRef.current.toBlob(async (blob) => {
+        if (!blob) {
+          alert("Failed to generate invitation card image blob.");
+          return;
+        }
+        try {
+          await navigator.clipboard.write([
+            new ClipboardItem({
+              [blob.type]: blob
+            })
+          ]);
+          alert("Personalized Invitation Card copied to clipboard! You can now paste (Ctrl+V) it directly into WhatsApp.");
+        } catch (err: any) {
+          console.error("Clipboard write error:", err);
+          alert("Could not copy card image to clipboard automatically. Please use the Download button instead.");
+        }
+      }, "image/png");
+    } catch (err) {
+      console.error(err);
+      alert("Failed to capture invitation card.");
+    }
+  };
+
   // Delete Guest Action
   const handleDeleteGuest = async (id: string) => {
     if (confirm("Are you sure you want to delete this guest?")) {
@@ -3343,13 +3370,23 @@ export default function AdminDashboard() {
                 </div>
               )}
 
-              {/* Download Action */}
-              <button
-                onClick={handleDownloadCard}
-                className="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs uppercase tracking-wider font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-sm"
-              >
-                Download Invitation Card (PNG)
-              </button>
+              {/* Download & Copy Actions */}
+              <div className="flex flex-col sm:flex-row gap-2">
+                <button
+                  type="button"
+                  onClick={handleDownloadCard}
+                  className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200 rounded-xl text-xs uppercase tracking-wider font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-sm font-bold"
+                >
+                  Download PNG
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCopyCardImage}
+                  className="flex-1 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs uppercase tracking-wider font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-sm font-bold"
+                >
+                  Copy Card Image
+                </button>
+              </div>
             </div>
 
             {/* Right Column: Message & Share */}
@@ -3358,6 +3395,11 @@ export default function AdminDashboard() {
                 <div>
                   <h3 className="font-serif font-bold text-lg text-slate-900">Invite via WhatsApp</h3>
                   <p className="text-xs text-slate-500 mt-1">Send a pre-crafted message with the invitation link directly to the guest.</p>
+                  
+                  {/* Premium Tip Alert */}
+                  <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-xl text-[11px] text-amber-800 leading-relaxed">
+                    <strong>Tip:</strong> WhatsApp doesn't support attaching images automatically through a link. We recommend clicking <strong>Copy Card Image</strong> on the left and pasting (Ctrl+V) it directly into your WhatsApp message.
+                  </div>
                 </div>
 
                 {/* Direct Phone Number Input */}
