@@ -426,6 +426,14 @@ export default function AdminDashboard() {
     }
   }, [isAuthenticated]);
 
+  useEffect(() => {
+    if (weddingInfo) {
+      document.title = `${weddingInfo.groomName} & ${weddingInfo.brideName} | Admin Dashboard`;
+    } else {
+      document.title = "Wedding Admin Dashboard";
+    }
+  }, [weddingInfo]);
+
   // Resolve Categories list dynamically
   const guestCategories: string[] = weddingInfo?.categories
     ? JSON.parse(weddingInfo.categories)
