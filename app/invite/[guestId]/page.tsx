@@ -67,9 +67,11 @@ export default async function InvitePage({ params }: InvitePageProps) {
     notFound();
   }
 
+  const weddingInfo = await getWeddingInfo();
+
   return (
     <LanguageProvider>
-      <InvitationMain guest={guest} />
+      <InvitationMain guest={guest} initialWeddingInfo={weddingInfo} />
     </LanguageProvider>
   );
 }

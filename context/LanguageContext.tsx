@@ -168,6 +168,14 @@ const translations: Translations = {
     en: "Bride's Family",
     ml: "വധുവിന്റെ കുടുംബം",
   },
+  parents: {
+    en: "Parents",
+    ml: "മാതാപിതാക്കൾ",
+  },
+  siblings: {
+    en: "Siblings",
+    ml: "സഹോദരങ്ങൾ",
+  },
   faq: {
     en: "Frequently Asked Questions",
     ml: "ചില സംശയങ്ങൾ",

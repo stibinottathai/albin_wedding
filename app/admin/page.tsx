@@ -427,6 +427,18 @@ export default function AdminDashboard() {
   }, [isAuthenticated]);
 
   useEffect(() => {
+    const fetchInfo = async () => {
+      try {
+        const info = await getWeddingInfo();
+        setWeddingInfo(info);
+      } catch (err) {
+        console.error("Failed to load wedding info on mount:", err);
+      }
+    };
+    fetchInfo();
+  }, []);
+
+  useEffect(() => {
     if (weddingInfo) {
       document.title = `${weddingInfo.groomName} & ${weddingInfo.brideName} | Admin Dashboard`;
     } else {
@@ -1304,7 +1316,9 @@ export default function AdminDashboard() {
 
         <div className="relative w-full max-w-sm bg-[#1f1b17]/95 rounded-3xl border border-[#d4af37]/35 shadow-2xl p-6 sm:p-8 text-center">
           {/* Brand Monogram */}
-          <div className="serif italic text-3xl text-[#d4af37] font-light mb-1">A & S</div>
+          <div className="serif italic text-3xl text-[#d4af37] font-light mb-1">
+            {weddingInfo ? `${weddingInfo.groomName[0]} & ${weddingInfo.brideName[0]}` : "A & S"}
+          </div>
           <div className="w-12 h-px bg-[#d4af37]/30 mx-auto mb-6" />
 
           <h1 className="font-serif text-2xl text-white font-medium mb-1">Admin Dashboard</h1>

@@ -21,10 +21,11 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export default function Home() {
+export default async function Home() {
+  const weddingInfo = await getWeddingInfo();
   return (
     <LanguageProvider>
-      <InvitationMain guest={null} />
+      <InvitationMain guest={null} initialWeddingInfo={weddingInfo} />
     </LanguageProvider>
   );
 }

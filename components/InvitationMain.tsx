@@ -231,13 +231,14 @@ function SectionDivider() {
 
 interface InvitationMainProps {
   guest?: Guest | null;
+  initialWeddingInfo?: WeddingInfo | null;
 }
 
-export const InvitationMain: React.FC<InvitationMainProps> = ({ guest }) => {
+export const InvitationMain: React.FC<InvitationMainProps> = ({ guest, initialWeddingInfo }) => {
   const { t, language, setLanguage } = useLanguage();
 
   const [isEnvelopeOpened, setIsEnvelopeOpened] = useState(!guest);
-  const [weddingInfo, setWeddingInfo] = useState<WeddingInfo | null>(null);
+  const [weddingInfo, setWeddingInfo] = useState<WeddingInfo | null>(initialWeddingInfo || null);
   const [events, setEvents] = useState<WeddingEvent[]>([]);
   const [stories, setStories] = useState<StoryMilestone[]>([]);
   const [faqs, setFaqs] = useState<FaqItem[]>([]);
@@ -284,7 +285,7 @@ export const InvitationMain: React.FC<InvitationMainProps> = ({ guest }) => {
   // Active section scroll spy listener
   useEffect(() => {
     const handleScroll = () => {
-      const sections = ["home", "our-story", "events", "gallery", "well-wishes", "rsvp"];
+      const sections = ["home", "our-story", "events", "gallery", "well-wishes", "family", "rsvp"];
       let current = "";
       for (const sectionId of sections) {
         const el = document.getElementById(sectionId);
@@ -371,7 +372,9 @@ export const InvitationMain: React.FC<InvitationMainProps> = ({ guest }) => {
     return (
       <div className="fixed inset-0 flex items-center justify-center bg-[var(--cream)]">
         <motion.div animate={{ opacity: [0.4, 1, 0.4] }} transition={{ repeat: Infinity, duration: 2 }}
-          className="serif italic text-3xl text-[var(--primary)] font-light">A & S</motion.div>
+          className="serif italic text-3xl text-[var(--primary)] font-light">
+          <Heart className="w-10 h-10 text-[var(--primary)] fill-[var(--primary)] animate-pulse" />
+        </motion.div>
       </div>
     );
   }
@@ -414,6 +417,9 @@ export const InvitationMain: React.FC<InvitationMainProps> = ({ guest }) => {
                 </a>
                 <a className={`font-label-md text-xs uppercase tracking-widest transition-all duration-300 whitespace-nowrap ${activeSection === "well-wishes" ? "text-[var(--primary)] font-bold border-b border-[var(--primary)] pb-1" : "text-[var(--muted-text)] hover:text-[var(--primary)]"}`} href="#well-wishes">
                   {t("wishes")}
+                </a>
+                <a className={`font-label-md text-xs uppercase tracking-widest transition-all duration-300 whitespace-nowrap ${activeSection === "family" ? "text-[var(--primary)] font-bold border-b border-[var(--primary)] pb-1" : "text-[var(--muted-text)] hover:text-[var(--primary)]"}`} href="#family">
+                  {t("family")}
                 </a>
                 <a className="font-label-md text-xs uppercase tracking-widest transition-all duration-300 whitespace-nowrap text-[var(--muted-text)] hover:text-[var(--primary)]" href="/admin">
                   {t("login")}
@@ -461,6 +467,7 @@ export const InvitationMain: React.FC<InvitationMainProps> = ({ guest }) => {
                       { href: "#events", label: t("schedule"), section: "events" },
                       { href: "#gallery", label: t("gallery"), section: "gallery" },
                       { href: "#well-wishes", label: t("wishes"), section: "well-wishes" },
+                      { href: "#family", label: t("family"), section: "family" },
                       { href: "/admin", label: t("login"), section: "admin" }
                     ].map((link) => (
                       <button
@@ -851,6 +858,103 @@ export const InvitationMain: React.FC<InvitationMainProps> = ({ guest }) => {
             </div>
           </section>
           )}
+
+          {/* ── 9.5 Family Section ── */}
+          <section className="py-24 px-6 bg-[var(--cream)] border-t border-[var(--border-warm)]/20 scroll-mt-20" id="family">
+            <div className="max-w-[1200px] mx-auto">
+              <div className="text-center mb-16">
+                <p className="sans text-xs uppercase tracking-[0.25em] text-[var(--muted-text)] font-semibold mb-2">
+                  {language === "en" ? "Loving Families" : "സ്നേഹനിധികളായ കുടുംബാംഗങ്ങൾ"}
+                </p>
+                <h2 className="font-headline-lg text-4xl md:text-5xl text-[var(--primary)] mb-4 serif font-light">{t("family")}</h2>
+                <SectionDivider />
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+                {/* Groom's Family */}
+                <motion.div
+                  initial={{ opacity: 0, y: 30 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.8 }}
+                  className="bg-[var(--surface-container-low)] rounded-3xl p-8 border border-[var(--border-warm)]/30 text-center shadow-sm flex flex-col justify-between"
+                >
+                  <div>
+                    <span className="sans text-[10px] uppercase tracking-widest text-[var(--primary)] font-bold mb-3 block">
+                      {t("groomSide")}
+                    </span>
+                    <h3 className="serif text-2xl italic text-[var(--charcoal)] mb-6">
+                      {weddingInfo.groomName}&apos;s Family
+                    </h3>
+                    
+                    <div className="space-y-6">
+                      <div>
+                        <h4 className="sans text-[10px] uppercase tracking-widest text-[var(--muted-text)] font-bold mb-2">
+                          {t("parents")}
+                        </h4>
+                        <p className="serif text-lg text-[var(--charcoal)] font-light">
+                          {weddingInfo.groomParents}
+                        </p>
+                      </div>
+
+                      {weddingInfo.groomSiblings && (
+                        <div>
+                          <div className="w-12 h-[1px] bg-[var(--border-warm)]/40 mx-auto my-4" />
+                          <h4 className="sans text-[10px] uppercase tracking-widest text-[var(--muted-text)] font-bold mb-2">
+                            {t("siblings")}
+                          </h4>
+                          <p className="sans text-sm text-[var(--charcoal)]">
+                            {weddingInfo.groomSiblings}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </motion.div>
+
+                {/* Bride's Family */}
+                <motion.div
+                  initial={{ opacity: 0, y: 30 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.8 }}
+                  className="bg-[var(--surface-container-low)] rounded-3xl p-8 border border-[var(--border-warm)]/30 text-center shadow-sm flex flex-col justify-between"
+                >
+                  <div>
+                    <span className="sans text-[10px] uppercase tracking-widest text-[var(--primary)] font-bold mb-3 block">
+                      {t("brideSide")}
+                    </span>
+                    <h3 className="serif text-2xl italic text-[var(--charcoal)] mb-6">
+                      {weddingInfo.brideName}&apos;s Family
+                    </h3>
+                    
+                    <div className="space-y-6">
+                      <div>
+                        <h4 className="sans text-[10px] uppercase tracking-widest text-[var(--muted-text)] font-bold mb-2">
+                          {t("parents")}
+                        </h4>
+                        <p className="serif text-lg text-[var(--charcoal)] font-light">
+                          {weddingInfo.brideParents}
+                        </p>
+                      </div>
+
+                      {weddingInfo.brideSiblings && (
+                        <div>
+                          <div className="w-12 h-[1px] bg-[var(--border-warm)]/40 mx-auto my-4" />
+                          <h4 className="sans text-[10px] uppercase tracking-widest text-[var(--muted-text)] font-bold mb-2">
+                            {t("siblings")}
+                          </h4>
+                          <p className="sans text-sm text-[var(--charcoal)]">
+                            {weddingInfo.brideSiblings}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </motion.div>
+              </div>
+            </div>
+          </section>
 
           {/* ── 10. FAQ Section ── */}
           {faqs.length > 0 && (
