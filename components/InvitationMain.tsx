@@ -245,7 +245,6 @@ export const InvitationMain: React.FC<InvitationMainProps> = ({ guest }) => {
   const [rsvpStatus, setRsvpStatus] = useState<"accepted" | "declined">("accepted");
   const [rsvpAttendees, setRsvpAttendees] = useState(1);
   const [rsvpMessage, setRsvpMessage] = useState("");
-  const [selectedMeal, setSelectedMeal] = useState("");
   const [isRsvpSubmitting, setIsRsvpSubmitting] = useState(false);
   const [rsvpSuccess, setRsvpSuccess] = useState(false);
   const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
@@ -321,10 +320,6 @@ export const InvitationMain: React.FC<InvitationMainProps> = ({ guest }) => {
     e.preventDefault();
     setIsRsvpSubmitting(true);
     try {
-      const combinedMessage = rsvpMessage
-        ? `${rsvpMessage}${selectedMeal ? ` (Meal Choice: ${selectedMeal})` : ""}`
-        : selectedMeal ? `(Meal Choice: ${selectedMeal})` : "";
-
       if (guest?.id) {
         const res = await fetch(`/api/rsvp/${guest.id}`, {
           method: "PATCH",
@@ -332,7 +327,7 @@ export const InvitationMain: React.FC<InvitationMainProps> = ({ guest }) => {
           body: JSON.stringify({
             rsvpStatus,
             rsvpAttendees,
-            rsvpMessage: combinedMessage,
+            rsvpMessage: rsvpMessage,
           }),
         });
         if (!res.ok) {
@@ -814,23 +809,6 @@ export const InvitationMain: React.FC<InvitationMainProps> = ({ guest }) => {
                               {Array.from({ length: guest?.allowedAttendees ?? 5 }).map((_, i) => (
                                 <option key={i + 1} value={i + 1}>{i + 1} {i === 0 ? "Person" : "People"}</option>
                               ))}
-                            </select>
-                          </div>
-
-                          {/* Meal Preference Selection */}
-                          <div>
-                            <label className="block sans text-[10px] uppercase tracking-widest text-[var(--muted-text)] mb-2 font-bold" htmlFor="meal">Meal Preference</label>
-                            <select
-                              id="meal"
-                              value={selectedMeal}
-                              onChange={(e) => setSelectedMeal(e.target.value)}
-                              className="w-full bg-transparent border-0 border-b border-[var(--border-warm)]/60 focus:ring-0 focus:border-b-2 focus:border-[var(--primary)] text-xs py-2.5 px-0 cursor-pointer"
-                            >
-                              <option value="">Select an option</option>
-                              <option value="Traditional Sadya">Traditional Kerala Sadya</option>
-                              <option value="Herb-Crusted Filet Mignon">Herb-Crusted Filet Mignon</option>
-                              <option value="Pan-Seared Sea Bass">Pan-Seared Sea Bass</option>
-                              <option value="Truffle Wild Mushroom Risotto">Truffle Wild Mushroom Risotto</option>
                             </select>
                           </div>
                         </motion.div>
