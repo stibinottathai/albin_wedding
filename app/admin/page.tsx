@@ -156,8 +156,16 @@ export default function AdminDashboard() {
 
   // Form states for gallery upload
   const [newImageFile, setNewImageFile] = useState<File | null>(null);
+  const [newImageFiles, setNewImageFiles] = useState<{ file: File; id: string; preview: string; alt: string }[]>([]);
   const [newImageUrl, setNewImageUrl] = useState("");
   const [newImageCategory, setNewImageCategory] = useState<string>("pre-wedding");
+
+  // Cleanup object URLs for selected files to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      newImageFiles.forEach(item => URL.revokeObjectURL(item.preview));
+    };
+  }, [newImageFiles]);
   const [newImageAlt, setNewImageAlt] = useState("");
   const [galleryFilterCategory, setGalleryFilterCategory] = useState("All");
   const [isAddingCustomGalleryCategory, setIsAddingCustomGalleryCategory] = useState(false);
@@ -704,6 +712,34 @@ export default function AdminDashboard() {
     setCustomGalleryCategoryInput("");
   };
 
+  // Handle file selection for gallery
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const selectedList = Array.from(e.target.files);
+      if (selectedList.length + newImageFiles.length > 10) {
+        setUploadError("You can upload a maximum of 10 photos at a time.");
+        return;
+      }
+      setUploadError("");
+      const newItems = selectedList.map(file => ({
+        file,
+        id: `file-${Math.random().toString(36).substring(2, 9)}`,
+        preview: URL.createObjectURL(file),
+        alt: ""
+      }));
+      setNewImageFiles(prev => [...prev, ...newItems]);
+    }
+  };
+
+  // Remove a file from the selected list
+  const handleRemoveSelectedFile = (id: string) => {
+    const itemToRemove = newImageFiles.find(item => item.id === id);
+    if (itemToRemove) {
+      URL.revokeObjectURL(itemToRemove.preview);
+    }
+    setNewImageFiles(prev => prev.filter(item => item.id !== id));
+  };
+
   // Download digital invitation card
   const handleDownloadCard = () => {
     if (!canvasRef.current || !sharingGuest) return;
@@ -772,86 +808,104 @@ export default function AdminDashboard() {
     setUploadError("");
     setUploadSuccess(false);
 
-    let src = "";
-
     if (uploadType === "url") {
       if (!newImageUrl.trim()) {
         setUploadError("Please enter an image URL.");
         return;
       }
-      src = newImageUrl.trim();
+      setUploading(true);
+      try {
+        const newImage: GalleryImage = {
+          id: `gal-${Math.random().toString(36).substring(2, 9)}`,
+          src: newImageUrl.trim(),
+          category: newImageCategory,
+          alt: newImageAlt.trim() || `${newImageCategory} photo`,
+          createdAt: new Date().toISOString()
+        };
+        await saveGalleryImage(newImage);
+
+        // Reset URL form
+        setNewImageUrl("");
+        setNewImageAlt("");
+        setUploadSuccess(true);
+        setTimeout(() => setUploadSuccess(false), 3000);
+        loadAdminData();
+      } catch (err: any) {
+        setUploadError(err.message || "Failed to save gallery image.");
+      } finally {
+        setUploading(false);
+      }
     } else {
-      if (!newImageFile) {
-        setUploadError("Please select an image file to upload.");
+      // File mode
+      if (newImageFiles.length === 0) {
+        setUploadError("Please select at least one image file to upload.");
         return;
       }
 
       setUploading(true);
       try {
-        if (isSupabaseConfigured) {
-          const fileExt = newImageFile.name.split(".").pop();
-          const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
-          const filePath = `${fileName}`;
+        for (const item of newImageFiles) {
+          let src = "";
+          if (isSupabaseConfigured) {
+            const fileExt = item.file.name.split(".").pop();
+            const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
+            const filePath = `${fileName}`;
 
-          const { error: uploadErr } = await supabase.storage
-            .from("gallery")
-            .upload(filePath, newImageFile, {
-              cacheControl: "3600",
-              upsert: false
+            const { error: uploadErr } = await supabase.storage
+              .from("gallery")
+              .upload(filePath, item.file, {
+                cacheControl: "3600",
+                upsert: false
+              });
+
+            if (uploadErr) {
+              throw new Error(`Supabase Storage upload failed for ${item.file.name}: ${uploadErr.message}`);
+            }
+
+            const { data: { publicUrl } } = supabase.storage
+              .from("gallery")
+              .getPublicUrl(filePath);
+
+            src = publicUrl;
+          } else {
+            // Local fallback: convert to base64
+            src = await new Promise<string>((resolve, reject) => {
+              const reader = new FileReader();
+              reader.readAsDataURL(item.file);
+              reader.onload = () => resolve(reader.result as string);
+              reader.onerror = (err) => reject(err);
             });
-
-          if (uploadErr) {
-            throw new Error(`Supabase Storage upload failed: ${uploadErr.message}`);
           }
 
-          const { data: { publicUrl } } = supabase.storage
-            .from("gallery")
-            .getPublicUrl(filePath);
+          const newImage: GalleryImage = {
+            id: `gal-${Math.random().toString(36).substring(2, 9)}`,
+            src,
+            category: newImageCategory,
+            alt: item.alt.trim() || newImageAlt.trim() || `${newImageCategory} photo`,
+            createdAt: new Date().toISOString()
+          };
 
-          src = publicUrl;
-        } else {
-          // Local fallback: convert to base64
-          src = await new Promise<string>((resolve, reject) => {
-            const reader = new FileReader();
-            reader.readAsDataURL(newImageFile);
-            reader.onload = () => resolve(reader.result as string);
-            reader.onerror = (err) => reject(err);
-          });
+          await saveGalleryImage(newImage);
         }
+
+        // Cleanup object URLs to prevent leaks
+        newImageFiles.forEach(item => URL.revokeObjectURL(item.preview));
+        
+        // Reset file form
+        setNewImageFiles([]);
+        setNewImageAlt("");
+        const fileInput = document.getElementById("gallery-file-input") as HTMLInputElement;
+        if (fileInput) fileInput.value = "";
+
+        setUploadSuccess(true);
+        setTimeout(() => setUploadSuccess(false), 3000);
+        loadAdminData();
       } catch (err: any) {
         console.error(err);
-        setUploadError(err.message || "Failed to upload image. Please try using an Image URL instead.");
+        setUploadError(err.message || "Failed to upload images.");
+      } finally {
         setUploading(false);
-        return;
       }
-    }
-
-    try {
-      const newImage: GalleryImage = {
-        id: `gal-${Math.random().toString(36).substring(2, 9)}`,
-        src,
-        category: newImageCategory,
-        alt: newImageAlt.trim() || `${newImageCategory} photo`,
-        createdAt: new Date().toISOString()
-      };
-
-      await saveGalleryImage(newImage);
-      
-      // Reset form
-      setNewImageFile(null);
-      setNewImageUrl("");
-      setNewImageAlt("");
-      // Clear file input DOM element if present
-      const fileInput = document.getElementById("gallery-file-input") as HTMLInputElement;
-      if (fileInput) fileInput.value = "";
-
-      setUploadSuccess(true);
-      setTimeout(() => setUploadSuccess(false), 3000);
-      loadAdminData();
-    } catch (err: any) {
-      setUploadError(err.message || "Failed to save gallery image.");
-    } finally {
-      setUploading(false);
     }
   };
 
@@ -2112,17 +2166,14 @@ export default function AdminDashboard() {
                   {/* Source Input */}
                   {uploadType === "file" ? (
                     <div key="gallery-file-input-wrapper">
-                      <label className="block text-xs uppercase font-bold text-slate-400 mb-1">Select Image File</label>
+                      <label className="block text-xs uppercase font-bold text-slate-400 mb-1">Select Image File(s)</label>
                       <input
                         key="gallery-file-input-node"
                         id="gallery-file-input"
                         type="file"
+                        multiple
                         accept="image/*"
-                        onChange={(e) => {
-                          if (e.target.files && e.target.files[0]) {
-                            setNewImageFile(e.target.files[0]);
-                          }
-                        }}
+                        onChange={handleFileChange}
                         className="w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200"
                       />
                       <span className="text-[10px] text-slate-400 mt-1 block">
@@ -2200,7 +2251,9 @@ export default function AdminDashboard() {
 
                   {/* Alt Text Description */}
                   <div className="md:col-span-2">
-                    <label className="block text-xs uppercase font-bold text-slate-400 mb-1">Description / Alt Text</label>
+                    <label className="block text-xs uppercase font-bold text-slate-400 mb-1">
+                      {uploadType === "file" && newImageFiles.length > 0 ? "Global Description / Alt Text (applied to photos without custom description)" : "Description / Alt Text"}
+                    </label>
                     <input
                       type="text"
                       value={newImageAlt || ""}
@@ -2209,18 +2262,61 @@ export default function AdminDashboard() {
                       className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm"
                     />
                   </div>
+
+                  {/* Selected files previews grid */}
+                  {uploadType === "file" && newImageFiles.length > 0 && (
+                    <div className="md:col-span-2 border-t pt-4 mt-2">
+                      <label className="block text-xs uppercase font-bold text-slate-400 mb-2">
+                        Selected Photos Preview ({newImageFiles.length} of 10)
+                      </label>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                        {newImageFiles.map((item) => (
+                          <div key={item.id} className="relative group bg-slate-50 border border-slate-200 rounded-xl p-1.5 flex flex-col justify-between animate-fadeIn">
+                            {/* Image Thumbnail with remove button */}
+                            <div className="aspect-video relative overflow-hidden bg-slate-200 rounded-lg">
+                              <img 
+                                src={item.preview} 
+                                alt="preview" 
+                                className="w-full h-full object-cover"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveSelectedFile(item.id)}
+                                className="absolute top-1 right-1 bg-rose-500 hover:bg-rose-600 text-white rounded-full p-1 shadow transition-colors cursor-pointer border-none"
+                                title="Remove photo"
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            </div>
+                            
+                            {/* Individual description input */}
+                            <input
+                              type="text"
+                              value={item.alt}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setNewImageFiles(prev => prev.map(p => p.id === item.id ? { ...p, alt: val } : p));
+                              }}
+                              placeholder="Add description..."
+                              className="w-full px-2 py-1 text-[11px] border border-slate-200 rounded mt-2 focus:outline-none focus:border-slate-400"
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex items-center justify-between border-t pt-4">
                   <div>
                     {uploadError && <p className="text-xs text-rose-600 font-medium">{uploadError}</p>}
-                    {uploadSuccess && <p className="text-xs text-emerald-600 font-medium">Photo added to gallery successfully!</p>}
+                    {uploadSuccess && <p className="text-xs text-emerald-600 font-medium">Photos added to gallery successfully!</p>}
                   </div>
 
                   <button
                     type="submit"
                     disabled={uploading}
-                    className="px-6 py-2.5 bg-slate-900 hover:bg-slate-800 disabled:bg-slate-400 text-white rounded-lg text-xs uppercase tracking-wider font-semibold flex items-center gap-1.5 transition-all shadow-sm"
+                    className="px-6 py-2.5 bg-slate-900 hover:bg-slate-800 disabled:bg-slate-400 text-white rounded-lg text-xs uppercase tracking-wider font-semibold flex items-center gap-1.5 transition-all shadow-sm cursor-pointer"
                   >
                     {uploading ? (
                       <>
@@ -2230,7 +2326,9 @@ export default function AdminDashboard() {
                     ) : (
                       <>
                         <Plus className="h-4 w-4" />
-                        Add Photo
+                        {uploadType === "file" && newImageFiles.length > 0 
+                          ? `Add Photos (${newImageFiles.length})` 
+                          : "Add Photo"}
                       </>
                     )}
                   </button>
