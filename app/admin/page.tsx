@@ -17,7 +17,8 @@ import {
   ExternalLink,
   ClipboardList,
   Filter,
-  Camera
+  Camera,
+  BookOpen
 } from "lucide-react";
 import { 
   getWeddingInfo, 
@@ -29,10 +30,14 @@ import {
   getGalleryImages,
   saveGalleryImage,
   deleteGalleryImage,
+  getStories,
+  saveStory,
+  deleteStory,
   WeddingInfo, 
   Guest, 
   Analytics,
-  GalleryImage
+  GalleryImage,
+  StoryMilestone
 } from "../../lib/db";
 import { supabase, isSupabaseConfigured } from "../../lib/supabase";
 
@@ -46,19 +51,36 @@ interface Wish {
 }
 
 export default function AdminDashboard() {
+  const storyFormRef = React.useRef<HTMLDivElement>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [authError, setAuthError] = useState("");
 
-  const [activeTab, setActiveTab] = useState<"analytics" | "rsvp" | "guests" | "wishes" | "settings" | "gallery">("analytics");
+  const [activeTab, setActiveTab] = useState<"analytics" | "rsvp" | "guests" | "wishes" | "settings" | "gallery" | "stories">("analytics");
   const [rsvpFilter, setRsvpFilter] = useState<"all" | "accepted" | "declined" | "pending">("all");
   const [weddingInfo, setWeddingInfo] = useState<WeddingInfo | null>(null);
   const [guests, setGuests] = useState<Guest[]>([]);
   const [wishes, setWishes] = useState<Wish[]>([]);
   const [analytics, setAnalytics] = useState<Analytics | null>(null);
   const [galleryImages, setGalleryImages] = useState<GalleryImage[]>([]);
+  const [storyMilestones, setStoryMilestones] = useState<StoryMilestone[]>([]);
   
+  // Form states for Our Story milestones
+  const [editingMilestoneId, setEditingMilestoneId] = useState<string | null>(null);
+  const [newStoryYear, setNewStoryYear] = useState("");
+  const [newStoryTitleEn, setNewStoryTitleEn] = useState("");
+  const [newStoryTitleMl, setNewStoryTitleMl] = useState("");
+  const [newStoryTextEn, setNewStoryTextEn] = useState("");
+  const [newStoryTextMl, setNewStoryTextMl] = useState("");
+  const [newStoryImageUrl, setNewStoryImageUrl] = useState("");
+  const [newStoryImageFile, setNewStoryImageFile] = useState<File | null>(null);
+  const [newStoryOrderIndex, setNewStoryOrderIndex] = useState(1);
+  const [storyUploadType, setStoryUploadType] = useState<"file" | "url">("file");
+  const [storyUploading, setStoryUploading] = useState(false);
+  const [storySuccess, setStorySuccess] = useState(false);
+  const [storyError, setStoryError] = useState("");
+
   // Form states for gallery upload
   const [newImageFile, setNewImageFile] = useState<File | null>(null);
   const [newImageUrl, setNewImageUrl] = useState("");
@@ -204,6 +226,11 @@ export default function AdminDashboard() {
       setAnalytics(stats);
       const galleryList = await getGalleryImages();
       setGalleryImages(Array.isArray(galleryList) ? galleryList : []);
+      const storiesList = await getStories();
+      setStoryMilestones(Array.isArray(storiesList) ? storiesList : []);
+      if (Array.isArray(storiesList)) {
+        setNewStoryOrderIndex(storiesList.length + 1);
+      }
     } catch (err) {
       console.error("Failed to load admin dashboard data:", err);
     }
@@ -409,6 +436,152 @@ export default function AdminDashboard() {
     }
   };
 
+  // Our Story: Upload and Save milestone
+  const handleSaveStory = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setStoryError("");
+    setStorySuccess(false);
+
+    if (!newStoryYear.trim()) {
+      setStoryError("Please enter a year (e.g. June 2022).");
+      return;
+    }
+    if (!newStoryTitleEn.trim() || !newStoryTitleMl.trim()) {
+      setStoryError("Please enter both English and Malayalam titles.");
+      return;
+    }
+
+    let imageUrl = newStoryImageUrl.trim();
+
+    if (storyUploadType === "file" && newStoryImageFile) {
+      setStoryUploading(true);
+      try {
+        if (isSupabaseConfigured) {
+          const fileExt = newStoryImageFile.name.split(".").pop();
+          const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
+          const filePath = `${fileName}`;
+
+          const { error: uploadErr } = await supabase.storage
+            .from("stories")
+            .upload(filePath, newStoryImageFile, {
+              cacheControl: "3600",
+              upsert: false
+            });
+
+          if (uploadErr) {
+            throw new Error(`Supabase Storage upload failed: ${uploadErr.message}`);
+          }
+
+          const { data: { publicUrl } } = supabase.storage
+            .from("stories")
+            .getPublicUrl(filePath);
+
+          imageUrl = publicUrl;
+        } else {
+          // Local fallback: convert to base64
+          imageUrl = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(newStoryImageFile);
+            reader.onload = () => resolve(reader.result as string);
+            reader.onerror = (err) => reject(err);
+          });
+        }
+      } catch (err: any) {
+        console.error(err);
+        setStoryError(err.message || "Failed to upload image. Please try pasting a URL instead.");
+        setStoryUploading(false);
+        return;
+      }
+    } else if (storyUploadType === "file" && !editingMilestoneId) {
+      setStoryError("Please select an image file to upload.");
+      return;
+    }
+
+    try {
+      const milestone: StoryMilestone = {
+        id: editingMilestoneId || `story-${Math.random().toString(36).substring(2, 9)}`,
+        year: newStoryYear.trim(),
+        titleEn: newStoryTitleEn.trim(),
+        titleMl: newStoryTitleMl.trim(),
+        textEn: newStoryTextEn.trim(),
+        textMl: newStoryTextMl.trim(),
+        imageUrl: imageUrl || "https://images.unsplash.com/photo-1511285560929-80b456fea0bc?q=80&w=800",
+        orderIndex: newStoryOrderIndex,
+        createdAt: new Date().toISOString()
+      };
+
+      await saveStory(milestone);
+      
+      // Reset form
+      setEditingMilestoneId(null);
+      setNewStoryYear("");
+      setNewStoryTitleEn("");
+      setNewStoryTitleMl("");
+      setNewStoryTextEn("");
+      setNewStoryTextMl("");
+      setNewStoryImageUrl("");
+      setNewStoryImageFile(null);
+      setNewStoryOrderIndex(storyMilestones.length + 2);
+      
+      const fileInput = document.getElementById("story-file-input") as HTMLInputElement;
+      if (fileInput) fileInput.value = "";
+
+      setStorySuccess(true);
+      setTimeout(() => setStorySuccess(false), 3000);
+      loadAdminData();
+    } catch (err: any) {
+      setStoryError(err.message || "Failed to save milestone.");
+    } finally {
+      setStoryUploading(false);
+    }
+  };
+
+  const handleEditStory = (milestone: StoryMilestone) => {
+    setEditingMilestoneId(milestone.id);
+    setNewStoryYear(milestone.year || "");
+    setNewStoryTitleEn(milestone.titleEn || "");
+    setNewStoryTitleMl(milestone.titleMl || "");
+    setNewStoryTextEn(milestone.textEn || "");
+    setNewStoryTextMl(milestone.textMl || "");
+    setNewStoryImageUrl(milestone.imageUrl || "");
+    setNewStoryOrderIndex(milestone.orderIndex || 1);
+    setStoryUploadType("url"); // Set to URL to show the current image URL
+
+    // Smoothly scroll to the Story Form container
+    storyFormRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  const handleCancelEditStory = () => {
+    setEditingMilestoneId(null);
+    setNewStoryYear("");
+    setNewStoryTitleEn("");
+    setNewStoryTitleMl("");
+    setNewStoryTextEn("");
+    setNewStoryTextMl("");
+    setNewStoryImageUrl("");
+    setNewStoryImageFile(null);
+    setNewStoryOrderIndex(storyMilestones.length + 1);
+  };
+
+  const handleDeleteStory = async (id: string, imageUrl: string) => {
+    if (confirm("Are you sure you want to delete this story milestone?")) {
+      try {
+        await deleteStory(id);
+
+        // Delete from storage if it is a Supabase object
+        if (isSupabaseConfigured && imageUrl.includes("/storage/v1/object/public/stories/")) {
+          const fileName = imageUrl.split("/stories/").pop();
+          if (fileName) {
+            await supabase.storage.from("stories").remove([fileName]);
+          }
+        }
+        loadAdminData();
+      } catch (err) {
+        console.error("Failed to delete story:", err);
+      }
+    }
+  };
+
   // Handle setting updates locally before submit
   const handleSettingChange = (field: keyof WeddingInfo, value: string) => {
     if (!weddingInfo) return;
@@ -550,6 +723,15 @@ export default function AdminDashboard() {
             >
               <Camera className="h-4 w-4 text-[#d4af37]" />
               Wedding Gallery
+            </button>
+            <button
+              onClick={() => setActiveTab("stories")}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-xs uppercase tracking-wider font-semibold transition-all ${
+                activeTab === "stories" ? "bg-slate-800 text-white border-l-4 border-[#d4af37]" : "hover:bg-slate-800/50 hover:text-white"
+              }`}
+            >
+              <BookOpen className="h-4 w-4 text-[#d4af37]" />
+              Our Story
             </button>
             <button
               onClick={() => setActiveTab("settings")}
@@ -976,9 +1158,10 @@ export default function AdminDashboard() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Source Input */}
                   {uploadType === "file" ? (
-                    <div>
+                    <div key="gallery-file-input-wrapper">
                       <label className="block text-xs uppercase font-bold text-slate-400 mb-1">Select Image File</label>
                       <input
+                        key="gallery-file-input-node"
                         id="gallery-file-input"
                         type="file"
                         accept="image/*"
@@ -995,11 +1178,12 @@ export default function AdminDashboard() {
                       </span>
                     </div>
                   ) : (
-                    <div>
+                    <div key="gallery-url-input-wrapper">
                       <label className="block text-xs uppercase font-bold text-slate-400 mb-1">Image URL</label>
                       <input
+                        key="gallery-url-input-node"
                         type="text"
-                        value={newImageUrl}
+                        value={newImageUrl || ""}
                         onChange={(e) => setNewImageUrl(e.target.value)}
                         placeholder="https://images.unsplash.com/photo-..."
                         className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm"
@@ -1027,7 +1211,7 @@ export default function AdminDashboard() {
                     <label className="block text-xs uppercase font-bold text-slate-400 mb-1">Description / Alt Text</label>
                     <input
                       type="text"
-                      value={newImageAlt}
+                      value={newImageAlt || ""}
                       onChange={(e) => setNewImageAlt(e.target.value)}
                       placeholder="e.g. Groom looking at bride during church ceremony"
                       className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm"
@@ -1103,6 +1287,236 @@ export default function AdminDashboard() {
                             <Trash2 className="h-4 w-4" />
                           </button>
                         </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Tab: Our Story Timeline */}
+        {activeTab === "stories" && (
+          <div className="space-y-8 animate-fadeIn">
+            {/* Add/Edit Story Milestone Form */}
+            <div ref={storyFormRef} className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-200">
+              <h3 className="font-serif font-bold text-lg text-slate-900 mb-4 border-b pb-2">
+                {editingMilestoneId ? "Edit Story Milestone" : "Add New Story Milestone"}
+              </h3>
+              
+              <form onSubmit={handleSaveStory} className="space-y-6">
+                {/* Upload Type toggle */}
+                <div className="flex gap-6">
+                  <label className="flex items-center gap-2 text-xs font-semibold uppercase text-slate-600 cursor-pointer">
+                    <input 
+                      type="radio" 
+                      name="storyUploadType" 
+                      checked={storyUploadType === "file"}
+                      onChange={() => setStoryUploadType("file")}
+                      className="accent-slate-900" 
+                    />
+                    Upload Image File
+                  </label>
+                  <label className="flex items-center gap-2 text-xs font-semibold uppercase text-slate-600 cursor-pointer">
+                    <input 
+                      type="radio" 
+                      name="storyUploadType" 
+                      checked={storyUploadType === "url"}
+                      onChange={() => setStoryUploadType("url")}
+                      className="accent-slate-900" 
+                    />
+                    Image URL (External)
+                  </label>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {/* Timeframe Year Input */}
+                  <div>
+                    <label className="block text-xs uppercase font-bold text-slate-400 mb-1">Timeframe / Year</label>
+                    <input
+                      type="text"
+                      required
+                      value={newStoryYear || ""}
+                      onChange={(e) => setNewStoryYear(e.target.value)}
+                      placeholder="e.g. June 2022"
+                      className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm"
+                    />
+                  </div>
+
+                  {/* Order Index */}
+                  <div>
+                    <label className="block text-xs uppercase font-bold text-slate-400 mb-1">Order Index (Sort position)</label>
+                    <input
+                      type="number"
+                      required
+                      min={1}
+                      value={newStoryOrderIndex}
+                      onChange={(e) => setNewStoryOrderIndex(parseInt(e.target.value, 10))}
+                      className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm"
+                    />
+                  </div>
+
+                  {/* Image Source Input */}
+                  {storyUploadType === "file" ? (
+                    <div key="story-file-input-wrapper">
+                      <label className="block text-xs uppercase font-bold text-slate-400 mb-1">Upload Image</label>
+                      <input
+                        key="story-file-input-node"
+                        id="story-file-input"
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          if (e.target.files && e.target.files[0]) {
+                            setNewStoryImageFile(e.target.files[0]);
+                          }
+                        }}
+                        className="w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200"
+                      />
+                    </div>
+                  ) : (
+                    <div key="story-url-input-wrapper">
+                      <label className="block text-xs uppercase font-bold text-slate-400 mb-1">Image URL</label>
+                      <input
+                        key="story-url-input-node"
+                        type="text"
+                        value={newStoryImageUrl || ""}
+                        onChange={(e) => setNewStoryImageUrl(e.target.value)}
+                        placeholder="https://images.unsplash.com/photo-..."
+                        className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm"
+                      />
+                    </div>
+                  )}
+
+                  {/* English Title */}
+                  <div className="md:col-span-1">
+                    <label className="block text-xs uppercase font-bold text-slate-400 mb-1">English Title</label>
+                    <input
+                      type="text"
+                      required
+                      value={newStoryTitleEn || ""}
+                      onChange={(e) => setNewStoryTitleEn(e.target.value)}
+                      placeholder="e.g. First Meeting"
+                      className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm"
+                    />
+                  </div>
+
+                  {/* Malayalam Title */}
+                  <div className="md:col-span-2">
+                    <label className="block text-xs uppercase font-bold text-slate-400 mb-1">Malayalam Title</label>
+                    <input
+                      type="text"
+                      required
+                      value={newStoryTitleMl || ""}
+                      onChange={(e) => setNewStoryTitleMl(e.target.value)}
+                      placeholder="e.g. ആദ്യ കൂടിക്കാഴ്ച"
+                      className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm"
+                    />
+                  </div>
+
+                  {/* English Story text */}
+                  <div className="md:col-span-3">
+                    <label className="block text-xs uppercase font-bold text-slate-400 mb-1">English Story Content</label>
+                    <textarea
+                      rows={3}
+                      value={newStoryTextEn || ""}
+                      onChange={(e) => setNewStoryTextEn(e.target.value)}
+                      placeholder="Describe what happened in English..."
+                      className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm resize-none"
+                    />
+                  </div>
+
+                  {/* Malayalam Story text */}
+                  <div className="md:col-span-3">
+                    <label className="block text-xs uppercase font-bold text-slate-400 mb-1">Malayalam Story Content</label>
+                    <textarea
+                      rows={3}
+                      value={newStoryTextMl || ""}
+                      onChange={(e) => setNewStoryTextMl(e.target.value)}
+                      placeholder="Describe what happened in Malayalam..."
+                      className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm resize-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between border-t pt-4">
+                  <div>
+                    {storyError && <p className="text-xs text-rose-600 font-medium">{storyError}</p>}
+                    {storySuccess && <p className="text-xs text-emerald-600 font-medium">Milestone saved successfully!</p>}
+                  </div>
+
+                  <div className="flex gap-2">
+                    {editingMilestoneId && (
+                      <button
+                        type="button"
+                        onClick={handleCancelEditStory}
+                        className="px-5 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg text-xs uppercase tracking-wider font-semibold transition-all"
+                      >
+                        Cancel
+                      </button>
+                    )}
+                    <button
+                      type="submit"
+                      disabled={storyUploading}
+                      className="px-6 py-2.5 bg-slate-900 hover:bg-slate-800 disabled:bg-slate-400 text-white rounded-lg text-xs uppercase tracking-wider font-semibold flex items-center gap-1.5 transition-all shadow-sm"
+                    >
+                      {storyUploading ? (
+                        <>
+                          <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          Uploading...
+                        </>
+                      ) : (
+                        <>
+                          <Plus className="h-4 w-4" />
+                          {editingMilestoneId ? "Save Milestone" : "Add Milestone"}
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </form>
+            </div>
+
+            {/* Timeline Milestones list */}
+            <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-200">
+              <h3 className="font-serif font-bold text-lg text-slate-900 mb-6 border-b pb-2">Timeline Milestones ({storyMilestones.length})</h3>
+
+              {storyMilestones.length === 0 ? (
+                <div className="text-center py-12 text-slate-400 italic">No milestones in the timeline yet. Add some above!</div>
+              ) : (
+                <div className="space-y-4">
+                  {storyMilestones.map((milestone) => (
+                    <div key={milestone.id} className="flex flex-col md:flex-row items-start md:items-center justify-between p-4 border border-slate-200 rounded-xl hover:bg-slate-50 transition-all gap-4">
+                      {/* Image Thumbnail & details */}
+                      <div className="flex items-center gap-4">
+                        <div className="w-16 h-12 rounded-lg overflow-hidden bg-slate-200 shrink-0">
+                          <img src={milestone.imageUrl} alt={milestone.titleEn} className="w-full h-full object-cover" />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold text-slate-900 font-serif text-sm">{milestone.titleEn}</span>
+                            <span className="text-slate-400 text-[10px] uppercase font-bold tracking-wider">({milestone.year})</span>
+                            <span className="bg-slate-100 text-slate-600 px-2 py-0.5 rounded text-[9px] font-semibold">Position: {milestone.orderIndex}</span>
+                          </div>
+                          <p className="text-xs text-slate-500 line-clamp-1 mt-0.5">{milestone.textEn}</p>
+                        </div>
+                      </div>
+
+                      {/* Actions */}
+                      <div className="flex items-center gap-3 shrink-0 ml-auto md:ml-0">
+                        <button
+                          onClick={() => handleEditStory(milestone)}
+                          className="px-3 py-1.5 border border-slate-200 hover:border-slate-400 text-slate-600 hover:text-slate-900 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDeleteStory(milestone.id, milestone.imageUrl)}
+                          className="p-1.5 text-rose-500 hover:bg-rose-50 rounded-lg transition-colors border border-transparent hover:border-rose-100"
+                          title="Delete Milestone"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
                       </div>
                     </div>
                   ))}

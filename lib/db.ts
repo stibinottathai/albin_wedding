@@ -61,6 +61,18 @@ export interface GalleryImage {
   createdAt: string;
 }
 
+export interface StoryMilestone {
+  id: string;
+  year: string;
+  titleEn: string;
+  titleMl: string;
+  textEn: string;
+  textMl: string;
+  imageUrl: string;
+  orderIndex: number;
+  createdAt: string;
+}
+
 export interface Analytics {
   totalVisitors: number;
   invitationOpens: number;
@@ -194,6 +206,53 @@ const DEFAULT_WISHES: Wish[] = [
 
 const DEFAULT_GALLERY_IMAGES: GalleryImage[] = [];
 
+const DEFAULT_STORIES: StoryMilestone[] = [
+  {
+    id: "story-1",
+    year: "June 2022",
+    titleEn: "First Meeting",
+    titleMl: "ആദ്യ കൂടിക്കാഴ്ച",
+    textEn: "A simple hello over aromatic coffee in Kochi sparked a conversation that went on for hours. We knew right away there was a spark.",
+    textMl: "കൊച്ചിയിലെ ഒരു കഫേയിൽ വെച്ചുള്ള കൂടിക്കാഴ്ച മണിക്കൂറുകളോളം നീണ്ട സംഭാഷണമായി മാറി.",
+    imageUrl: "https://images.unsplash.com/photo-1522673607200-164d1b6ce486?q=80&w=900",
+    orderIndex: 1,
+    createdAt: "2026-06-08T00:00:01Z"
+  },
+  {
+    id: "story-2",
+    year: "December 2023",
+    titleEn: "Friendship to Bond",
+    titleMl: "സൗഹൃദത്തിന്റെ നാളുകൾ",
+    textEn: "Late night drives, shared playlists, and whispered dreams. Friendship became the anchor of our lives.",
+    textMl: "രാത്രി യാത്രകളും ഒരേ സംഗീതവും സ്വപ്നങ്ങളും പരസ്പരം പങ്കുവെച്ച നാളുകൾ.",
+    imageUrl: "https://images.unsplash.com/photo-1529636798458-92182e65f133?q=80&w=900",
+    orderIndex: 2,
+    createdAt: "2026-06-08T00:00:02Z"
+  },
+  {
+    id: "story-3",
+    year: "February 2025",
+    titleEn: "The Proposal",
+    titleMl: "പ്രണയ സാഫല്യം",
+    textEn: "On a quiet sunset cruise along the backwaters, we realised we wanted to spend forever together.",
+    textMl: "കായലിലൂടെയുള്ള ഒരു വൈകുന്നേരത്തെ യാത്രയിൽ ഒരുമിച്ചുള്ള ഒരു ജീവിതമാണ് ഞങ്ങൾ ആഗ്രഹിക്കുന്നതെന്ന് മനസ്സിലാക്കി.",
+    imageUrl: "https://images.unsplash.com/photo-1511285560929-80b456fea0bc?q=80&w=900",
+    orderIndex: 3,
+    createdAt: "2026-06-08T00:00:03Z"
+  },
+  {
+    id: "story-4",
+    year: "June 2026",
+    titleEn: "The Engagement",
+    titleMl: "വിവാഹ നിശ്ചയം",
+    textEn: "Surrounded by family and loved ones, we exchanged rings and promised to walk side by side through every season of life.",
+    textMl: "കുടുംബത്തിന്റെ സാന്നിദ്ധ്യത്തിൽ മോതിരം മാറി ഒരുമിച്ചുണ്ടാകുമെന്ന് പ്രതിജ്ഞ ചെയ്തു.",
+    imageUrl: "https://images.unsplash.com/photo-1515934751635-c81c6bc9a2d8?q=80&w=900",
+    orderIndex: 4,
+    createdAt: "2026-06-08T00:00:04Z"
+  }
+];
+
 // --- Local Storage Mock Engine ---
 class MockDB {
   private getStorageKey(key: string): string {
@@ -281,6 +340,14 @@ class MockDB {
 
   saveGalleryImages(images: GalleryImage[]): void {
     this.setData("gallery", images);
+  }
+
+  getStories(): StoryMilestone[] {
+    return this.getData<StoryMilestone[]>("stories", DEFAULT_STORIES);
+  }
+
+  saveStories(stories: StoryMilestone[]): void {
+    this.setData("stories", stories);
   }
 }
 
@@ -724,4 +791,65 @@ export const deleteGalleryImage = async (id: string): Promise<void> => {
   const images = mockDb.getGalleryImages();
   const filtered = images.filter(img => img.id !== id);
   mockDb.saveGalleryImages(filtered);
+};
+
+export const getStories = async (): Promise<StoryMilestone[]> => {
+  if (isSupabaseConfigured) {
+    try {
+      const { data, error } = await supabase
+        .from("stories")
+        .select("*")
+        .order("orderIndex", { ascending: true });
+      if (data && data.length > 0) {
+        return data as StoryMilestone[];
+      }
+      if (data && data.length === 0) {
+        const { error: insertError } = await supabase
+          .from("stories")
+          .insert(DEFAULT_STORIES);
+        if (!insertError) return DEFAULT_STORIES;
+      }
+    } catch (e) {
+      console.error("Supabase getStories error:", e);
+    }
+  }
+  return mockDb.getStories().sort((a, b) => a.orderIndex - b.orderIndex);
+};
+
+export const saveStory = async (story: StoryMilestone): Promise<void> => {
+  if (isSupabaseConfigured) {
+    try {
+      const { error } = await supabase
+        .from("stories")
+        .upsert(story);
+      if (!error) return;
+    } catch (e) {
+      console.error("Supabase saveStory error:", e);
+    }
+  }
+  const stories = mockDb.getStories();
+  const index = stories.findIndex(s => s.id === story.id);
+  if (index >= 0) {
+    stories[index] = story;
+  } else {
+    stories.push(story);
+  }
+  mockDb.saveStories(stories);
+};
+
+export const deleteStory = async (id: string): Promise<void> => {
+  if (isSupabaseConfigured) {
+    try {
+      const { error } = await supabase
+        .from("stories")
+        .delete()
+        .eq("id", id);
+      if (!error) return;
+    } catch (e) {
+      console.error("Supabase deleteStory error:", e);
+    }
+  }
+  const stories = mockDb.getStories();
+  const filtered = stories.filter(s => s.id !== id);
+  mockDb.saveStories(filtered);
 };

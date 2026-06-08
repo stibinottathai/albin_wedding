@@ -10,7 +10,7 @@ import {
 import { useLanguage } from "../context/LanguageContext";
 import {
   getWeddingInfo, getEvents, updateRSVP, incrementInviteOpened,
-  WeddingInfo, WeddingEvent, Guest
+  getStories, WeddingInfo, WeddingEvent, Guest, StoryMilestone
 } from "../lib/db";
 import Envelope from "./Envelope";
 import MusicPlayer, { MusicPlayerRef } from "./MusicPlayer";
@@ -215,6 +215,7 @@ export const InvitationMain: React.FC<InvitationMainProps> = ({ guest }) => {
   const [isEnvelopeOpened, setIsEnvelopeOpened] = useState(false);
   const [weddingInfo, setWeddingInfo] = useState<WeddingInfo | null>(null);
   const [events, setEvents] = useState<WeddingEvent[]>([]);
+  const [stories, setStories] = useState<StoryMilestone[]>([]);
   const [isDateRevealed, setIsDateRevealed] = useState(false);
   const [rsvpStatus, setRsvpStatus] = useState<"accepted" | "declined">("accepted");
   const [rsvpAttendees, setRsvpAttendees] = useState(1);
@@ -236,6 +237,8 @@ export const InvitationMain: React.FC<InvitationMainProps> = ({ guest }) => {
       setWeddingInfo(info);
       const evs = await getEvents();
       setEvents(evs);
+      const sts = await getStories();
+      setStories(sts);
     };
     fetchData();
   }, []);
@@ -501,72 +504,53 @@ export const InvitationMain: React.FC<InvitationMainProps> = ({ guest }) => {
               <div className="absolute left-[20px] md:left-1/2 top-0 bottom-0 w-px bg-[var(--border-warm)]/60 md:-translate-x-1/2" />
 
               {/* Milestones */}
-              {[
-                {
-                  year: "June 2022", title: t("storyFirstMeeting"), reverse: false,
-                  img: "https://images.unsplash.com/photo-1522673607200-164d1b6ce486?q=80&w=900",
-                  text: language === "en"
-                    ? "A simple hello over aromatic coffee in Kochi sparked a conversation that went on for hours. We knew right away there was a spark."
-                    : "കൊച്ചിയിലെ ഒരു കഫേയിൽ വെച്ചുള്ള കൂടിക്കാഴ്ച മണിക്കൂറുകളോളം നീണ്ട സംഭാഷണമായി മാറി.",
-                },
-                {
-                  year: "December 2023", title: t("storyFriendship"), reverse: true,
-                  img: "https://images.unsplash.com/photo-1529636798458-92182e65f133?q=80&w=900",
-                  text: language === "en"
-                    ? "Late night drives, shared playlists, and whispered dreams. Friendship became the anchor of our lives."
-                    : "രാത്രി യാത്രകളും ഒരേ സംഗീതവും സ്വപ്നങ്ങളും പരസ്പരം പങ്കുവെച്ച നാളുകൾ.",
-                },
-                {
-                  year: "February 2025", title: t("storyLove"), reverse: false,
-                  img: "https://images.unsplash.com/photo-1511285560929-80b456fea0bc?q=80&w=900",
-                  text: language === "en"
-                    ? "On a quiet sunset cruise along the backwaters, we realised we wanted to spend forever together."
-                    : "കായലിലൂടെയുള്ള ഒരു വൈകുന്നേരത്തെ യാത്രയിൽ ഒരുമിച്ചുള്ള ഒരു ജീവിതമാണ് ഞങ്ങൾ ആഗ്രഹിക്കുന്നതെന്ന് മനസ്സിലാക്കി.",
-                },
-                {
-                  year: "June 2026", title: t("storyEngagement"), reverse: true,
-                  img: "https://images.unsplash.com/photo-1515934751635-c81c6bc9a2d8?q=80&w=900",
-                  text: language === "en"
-                    ? "Surrounded by family and loved ones, we exchanged rings and promised to walk side by side through every season of life."
-                    : "കുടുംബത്തിന്റെ സാന്നിദ്ധ്യത്തിൽ മോതിരം മാറി ഒരുമിച്ചുണ്ടാകുമെന്ന് പ്രതിജ്ഞ ചെയ്തു.",
-                },
-              ].map((item, i) => (
-                <motion.div
-                  key={i}
-                  initial={{ opacity: 0, y: 30 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true, margin: "-100px" }}
-                  transition={{ duration: 0.8, ease: "easeOut" }}
-                  className={`relative flex flex-col md:flex-row ${item.reverse ? "md:flex-row-reverse" : ""} justify-between items-stretch mb-20 group`}
-                >
-                  {/* Timeline dot */}
-                  <div className="absolute left-[20px] md:left-1/2 w-9 h-9 bg-[var(--background)] border border-[var(--primary)] rounded-full md:-translate-x-1/2 flex items-center justify-center z-10 group-hover:bg-[var(--primary)] transition-colors duration-300">
-                    <Heart className="w-3.5 h-3.5 text-[var(--primary)] group-hover:text-white transition-colors duration-300" />
-                  </div>
-
-                  {/* Empty spacer / visual alignment column */}
-                  <div className="hidden md:block w-[45%]" />
-
-                  {/* Content Column */}
-                  <div className="pl-12 md:pl-0 w-full md:w-[45%] flex flex-col justify-center">
-                    <div className="bg-[var(--surface-container-low)] rounded-2xl p-6 border border-[var(--border-warm)]/30 shadow-sm hover:shadow-md transition-shadow duration-300">
-                      {/* Image representation for Mobile & Desktop inside */}
-                      <div className="relative overflow-hidden rounded-xl aspect-[16/10] bg-[var(--parchment)] mb-6 shadow-sm border border-[var(--border-warm)]/20">
-                        <img
-                          src={item.img}
-                          alt={item.title}
-                          className="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-700 hover:scale-[1.04]"
-                        />
-                        <div className="absolute inset-0 bg-[var(--sage-dark)]/5 pointer-events-none" />
-                      </div>
-
-                      <span className="sans text-[10px] uppercase tracking-[0.25em] text-[var(--dusty-rose)] font-bold block mb-1">{item.year}</span>
-                      <h3 className="serif text-2xl font-light italic text-[var(--charcoal)] mb-3">{item.title}</h3>
-                      <p className="sans text-xs text-[var(--muted-text)] leading-relaxed">{item.text}</p>
+              {stories.length === 0 ? (
+                <div className="text-center py-12 text-xs italic text-[var(--muted-text)]">
+                  Our love story timeline is being written... Please check back soon!
+                </div>
+              ) : (
+                stories.map((item, i) => (
+                  <motion.div
+                    key={item.id}
+                    initial={{ opacity: 0, y: 30 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true, margin: "-100px" }}
+                    transition={{ duration: 0.8, ease: "easeOut" }}
+                    className={`relative flex flex-col md:flex-row ${i % 2 === 1 ? "md:flex-row-reverse" : ""} justify-between items-stretch mb-20 group`}
+                  >
+                    {/* Timeline dot */}
+                    <div className="absolute left-[20px] md:left-1/2 w-9 h-9 bg-[var(--background)] border border-[var(--primary)] rounded-full md:-translate-x-1/2 flex items-center justify-center z-10 group-hover:bg-[var(--primary)] transition-colors duration-300">
+                      <Heart className="w-3.5 h-3.5 text-[var(--primary)] group-hover:text-white transition-colors duration-300" />
                     </div>
-                  </div>
-                </motion.div>
-              ))}
+
+                    {/* Empty spacer / visual alignment column */}
+                    <div className="hidden md:block w-[45%]" />
+
+                    {/* Content Column */}
+                    <div className="pl-12 md:pl-0 w-full md:w-[45%] flex flex-col justify-center">
+                      <div className="bg-[var(--surface-container-low)] rounded-2xl p-6 border border-[var(--border-warm)]/30 shadow-sm hover:shadow-md transition-shadow duration-300">
+                        {/* Image representation for Mobile & Desktop inside */}
+                        <div className="relative overflow-hidden rounded-xl aspect-[16/10] bg-[var(--parchment)] mb-6 shadow-sm border border-[var(--border-warm)]/20">
+                          <img
+                            src={item.imageUrl}
+                            alt={language === "en" ? item.titleEn : item.titleMl}
+                            className="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-700 hover:scale-[1.04]"
+                          />
+                          <div className="absolute inset-0 bg-[var(--sage-dark)]/5 pointer-events-none" />
+                        </div>
+
+                        <span className="sans text-[10px] uppercase tracking-[0.25em] text-[var(--dusty-rose)] font-bold block mb-1">{item.year}</span>
+                        <h3 className="serif text-2xl font-light italic text-[var(--charcoal)] mb-3">
+                          {language === "en" ? item.titleEn : item.titleMl}
+                        </h3>
+                        <p className="sans text-xs text-[var(--muted-text)] leading-relaxed">
+                          {language === "en" ? item.textEn : item.textMl}
+                        </p>
+                      </div>
+                    </div>
+                  </motion.div>
+                ))
+              )}
             </div>
           </section>
 
