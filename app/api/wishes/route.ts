@@ -10,25 +10,29 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const includeAll = searchParams.get("all") === "true";
+  const limit = parseInt(searchParams.get("limit") || "50", 10);
+  const offset = parseInt(searchParams.get("offset") || "0", 10);
 
   try {
     let query = supabase
       .from("wishes")
-      .select("*")
+      .select("*", { count: "exact" })
       .order("timestamp", { ascending: false });
 
     if (!includeAll) {
       query = query.eq("approved", true);
     }
 
-    const { data, error } = await query;
+    query = query.range(offset, offset + limit - 1);
+
+    const { data, count, error } = await query;
 
     if (error) {
       console.error("API getWishes error:", error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json(data ?? []);
+    return NextResponse.json({ data: data ?? [], total: count ?? 0 });
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 500 });
   }

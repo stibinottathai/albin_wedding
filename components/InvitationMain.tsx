@@ -700,7 +700,10 @@ export const InvitationMain: React.FC<InvitationMainProps> = ({ guest }) => {
                 <h2 className="font-headline-lg text-4xl md:text-5xl text-[var(--primary)] mb-4 serif font-light">{t("wishes")}</h2>
                 <SectionDivider />
               </div>
-              <WishesWall />
+              <WishesWall 
+                groomName={weddingInfo?.groomName} 
+                brideName={weddingInfo?.brideName} 
+              />
             </div>
           </section>
 
