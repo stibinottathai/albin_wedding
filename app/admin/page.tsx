@@ -1382,14 +1382,18 @@ export default function AdminDashboard() {
   const displayedGalleryImages = filteredGalleryImages.slice(0, visibleGalleryCount);
   const hasMoreGallery = filteredGalleryImages.length > visibleGalleryCount;
 
+  const adminSidebarGroom = weddingInfo?.groomName || "Albin";
+  const adminSidebarBride = weddingInfo?.brideName || "Stella";
+  const adminSidebarInitial = adminSidebarGroom.charAt(0).toUpperCase();
+
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col text-slate-800">
 
       {/* ── Mobile Top Header Bar ── */}
       <header className="md:hidden flex items-center justify-between bg-slate-900 text-white px-4 py-3 sticky top-0 z-40 shrink-0">
         <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded bg-[#d4af37] text-slate-950 flex items-center justify-center font-bold text-xs">A</div>
-          <span className="font-serif text-white font-bold text-sm">Wedding Admin</span>
+          <div className="w-7 h-7 rounded bg-[#d4af37] text-slate-950 flex items-center justify-center font-bold text-xs">{adminSidebarInitial}</div>
+          <span className="font-serif text-white font-bold text-sm">{adminSidebarGroom} &amp; {adminSidebarBride} Admin</span>
         </div>
         <button
           onClick={() => setIsSidebarOpen(true)}
@@ -1421,9 +1425,9 @@ export default function AdminDashboard() {
             {/* Sidebar Header */}
             <div className="flex items-center justify-between mb-8">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded bg-[#d4af37] text-slate-950 flex items-center justify-center font-bold">A</div>
+                <div className="w-8 h-8 rounded bg-[#d4af37] text-slate-950 flex items-center justify-center font-bold">{adminSidebarInitial}</div>
                 <div>
-                  <h2 className="font-serif text-white font-bold text-base leading-tight">Albin &amp; Stella</h2>
+                  <h2 className="font-serif text-white font-bold text-base leading-tight">{adminSidebarGroom} &amp; {adminSidebarBride}</h2>
                   <span className="text-[10px] text-slate-400 uppercase tracking-widest">Wedding Admin</span>
                 </div>
               </div>
