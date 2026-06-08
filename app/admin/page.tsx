@@ -157,8 +157,13 @@ export default function AdminDashboard() {
   // Form states for gallery upload
   const [newImageFile, setNewImageFile] = useState<File | null>(null);
   const [newImageUrl, setNewImageUrl] = useState("");
-  const [newImageCategory, setNewImageCategory] = useState<GalleryImage["category"]>("pre-wedding");
+  const [newImageCategory, setNewImageCategory] = useState<string>("pre-wedding");
   const [newImageAlt, setNewImageAlt] = useState("");
+  const [galleryFilterCategory, setGalleryFilterCategory] = useState("All");
+  const [isAddingCustomGalleryCategory, setIsAddingCustomGalleryCategory] = useState(false);
+  const [customGalleryCategoryInput, setCustomGalleryCategoryInput] = useState("");
+  const [visibleGalleryCount, setVisibleGalleryCount] = useState(12);
+  const [loadingMoreGallery, setLoadingMoreGallery] = useState(false);
   const [uploadType, setUploadType] = useState<"file" | "url">("file");
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
@@ -201,6 +206,10 @@ export default function AdminDashboard() {
     setRsvpsPage(1);
   }, [rsvpFilter]);
 
+  useEffect(() => {
+    setVisibleGalleryCount(12);
+  }, [galleryFilterCategory]);
+
   // Clamp page indices when dataset size shrinks (e.g. deletion of the last item on a page)
   useEffect(() => {
     const filtered = guests.filter(
@@ -231,6 +240,14 @@ export default function AdminDashboard() {
     setTimeout(() => {
       setVisibleWishesCount((prev) => prev + 10);
       setLoadingMoreWishes(false);
+    }, 300);
+  };
+
+  const handleLoadMoreGallery = () => {
+    setLoadingMoreGallery(true);
+    setTimeout(() => {
+      setVisibleGalleryCount((prev) => prev + 12);
+      setLoadingMoreGallery(false);
     }, 300);
   };
 
@@ -405,6 +422,11 @@ export default function AdminDashboard() {
   const guestCategories: string[] = weddingInfo?.categories
     ? JSON.parse(weddingInfo.categories)
     : ["General", "Family", "Friends", "Relatives"];
+
+  // Resolve Gallery Categories list dynamically
+  const galleryCategories: string[] = weddingInfo?.galleryCategories
+    ? JSON.parse(weddingInfo.galleryCategories)
+    : ["pre-wedding", "engagement", "family", "memories"];
 
   // Re-render Canvas Invitation Card
   useEffect(() => {
@@ -651,6 +673,35 @@ export default function AdminDashboard() {
     setNewGuestCategory(trimmed);
     setIsAddingCustomCategory(false);
     setCustomCategoryInput("");
+  };
+
+  // Add custom gallery category in dropdown
+  const handleSaveCustomGalleryCategory = async () => {
+    const trimmed = customGalleryCategoryInput.trim();
+    if (!trimmed) return;
+    if (galleryCategories.includes(trimmed)) {
+      setNewImageCategory(trimmed);
+      setIsAddingCustomGalleryCategory(false);
+      setCustomGalleryCategoryInput("");
+      return;
+    }
+
+    const updatedCategories = [...galleryCategories, trimmed];
+    if (weddingInfo) {
+      const updatedInfo = {
+        ...weddingInfo,
+        galleryCategories: JSON.stringify(updatedCategories)
+      };
+      try {
+        await saveWeddingInfo(updatedInfo);
+        setWeddingInfo(updatedInfo);
+      } catch (err) {
+        console.error("Failed to save custom gallery category:", err);
+      }
+    }
+    setNewImageCategory(trimmed);
+    setIsAddingCustomGalleryCategory(false);
+    setCustomGalleryCategoryInput("");
   };
 
   // Download digital invitation card
@@ -1243,6 +1294,12 @@ export default function AdminDashboard() {
 
   const displayedWishes = wishes.slice(0, visibleWishesCount);
   const hasMoreWishes = wishes.length > visibleWishesCount;
+
+  const filteredGalleryImages = galleryImages.filter(
+    (img) => galleryFilterCategory === "All" || img.category === galleryFilterCategory
+  );
+  const displayedGalleryImages = filteredGalleryImages.slice(0, visibleGalleryCount);
+  const hasMoreGallery = filteredGalleryImages.length > visibleGalleryCount;
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col text-slate-800">
@@ -2090,16 +2147,55 @@ export default function AdminDashboard() {
                   {/* Category Selection */}
                   <div>
                     <label className="block text-xs uppercase font-bold text-slate-400 mb-1">Category</label>
-                    <select
-                      value={newImageCategory}
-                      onChange={(e) => setNewImageCategory(e.target.value as any)}
-                      className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm bg-white"
-                    >
-                      <option value="pre-wedding">Pre-Wedding</option>
-                      <option value="engagement">Engagement</option>
-                      <option value="family">Family / Relatives</option>
-                      <option value="memories">Memories</option>
-                    </select>
+                    {isAddingCustomGalleryCategory ? (
+                      <div className="flex gap-1 items-center">
+                        <input
+                          type="text"
+                          required
+                          value={customGalleryCategoryInput || ""}
+                          onChange={(e) => setCustomGalleryCategoryInput(e.target.value)}
+                          placeholder="New Category..."
+                          className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-slate-400"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleSaveCustomGalleryCategory}
+                          className="p-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg transition-colors shrink-0 cursor-pointer"
+                          title="Add Category"
+                        >
+                          <Check className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsAddingCustomGalleryCategory(false);
+                            setCustomGalleryCategoryInput("");
+                            setNewImageCategory("pre-wedding");
+                          }}
+                          className="p-2.5 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg transition-colors shrink-0 cursor-pointer"
+                          title="Cancel"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <select
+                        value={newImageCategory || "pre-wedding"}
+                        onChange={(e) => {
+                          if (e.target.value === "__new__") {
+                            setIsAddingCustomGalleryCategory(true);
+                          } else {
+                            setNewImageCategory(e.target.value);
+                          }
+                        }}
+                        className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm bg-white"
+                      >
+                        {galleryCategories.map((cat) => (
+                          <option key={cat} value={cat}>{cat.charAt(0).toUpperCase() + cat.slice(1)}</option>
+                        ))}
+                        <option value="__new__">+ Add Custom...</option>
+                      </select>
+                    )}
                   </div>
 
                   {/* Alt Text Description */}
@@ -2149,44 +2245,100 @@ export default function AdminDashboard() {
               {galleryImages.length === 0 ? (
                 <div className="text-center py-12 text-slate-400 italic">No photos in the gallery. Add some above!</div>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                  {galleryImages.map((img) => (
-                    <div key={img.id} className="group relative bg-slate-50 border border-slate-200 rounded-xl overflow-hidden shadow-sm flex flex-col justify-between">
-                      {/* Image Thumbnail */}
-                      <div className="aspect-video relative overflow-hidden bg-slate-200">
-                        <img 
-                          src={img.src} 
-                          alt={img.alt} 
-                          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                        />
-                        <span className="absolute top-2 left-2 bg-slate-900/80 backdrop-blur-sm text-white px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider">
-                          {img.category}
-                        </span>
-                      </div>
+                <>
+                  {/* Category Filter Tabs for Gallery */}
+                  <div className="flex flex-wrap gap-2 mb-6">
+                    <button
+                      onClick={() => setGalleryFilterCategory("All")}
+                      className={`px-4 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wider border transition-all cursor-pointer ${
+                        galleryFilterCategory === "All"
+                          ? "bg-slate-900 text-white border-slate-900 shadow-sm"
+                          : "bg-white text-slate-500 border-slate-200 hover:border-slate-400"
+                      }`}
+                    >
+                      All Categories
+                    </button>
+                    {galleryCategories.map((cat) => (
+                      <button
+                        key={cat}
+                        onClick={() => setGalleryFilterCategory(cat)}
+                        className={`px-4 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wider border transition-all cursor-pointer ${
+                          galleryFilterCategory === cat
+                            ? "bg-slate-900 text-white border-slate-900 shadow-sm"
+                            : "bg-white text-slate-500 border-slate-200 hover:border-slate-400"
+                        }`}
+                      >
+                        {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                      </button>
+                    ))}
+                  </div>
 
-                      {/* Info and Actions */}
-                      <div className="p-3.5 flex flex-col justify-between flex-1">
-                        <p className="text-xs text-slate-700 italic font-medium line-clamp-2 mb-3">
-                          "{img.alt || 'No description'}"
-                        </p>
-                        
-                        <div className="flex items-center justify-between border-t pt-2.5 mt-auto">
-                          <span className="text-[9px] text-slate-400 uppercase font-mono">
-                            {img.id.startsWith("gal-") && img.id.length < 15 ? "Seeded" : "Uploaded"}
-                          </span>
-                          
-                          <button
-                            onClick={() => handleDeleteImage(img.id, img.src)}
-                            className="text-rose-500 hover:text-rose-700 p-1 hover:bg-rose-50 rounded transition-colors"
-                            title="Delete Image"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
+                  {filteredGalleryImages.length === 0 ? (
+                    <div className="text-center py-12 text-slate-400 italic">No photos found in this category.</div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                      {displayedGalleryImages.map((img) => (
+                        <div key={img.id} className="group relative bg-slate-50 border border-slate-200 rounded-xl overflow-hidden shadow-sm flex flex-col justify-between">
+                          {/* Image Thumbnail */}
+                          <div className="aspect-video relative overflow-hidden bg-slate-200">
+                            <img 
+                              src={img.src} 
+                              alt={img.alt} 
+                              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                            />
+                            <span className="absolute top-2 left-2 bg-slate-900/80 backdrop-blur-sm text-white px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider">
+                              {img.category}
+                            </span>
+                          </div>
+
+                          {/* Info and Actions */}
+                          <div className="p-3.5 flex flex-col justify-between flex-1">
+                            <p className="text-xs text-slate-700 italic font-medium line-clamp-2 mb-3">
+                              "{img.alt || 'No description'}"
+                            </p>
+                            
+                            <div className="flex items-center justify-between border-t pt-2.5 mt-auto">
+                              <span className="text-[9px] text-slate-400 uppercase font-mono">
+                                {img.id.startsWith("gal-") && img.id.length < 15 ? "Seeded" : "Uploaded"}
+                              </span>
+                              
+                              <button
+                                onClick={() => handleDeleteImage(img.id, img.src)}
+                                className="text-rose-500 hover:text-rose-700 p-1 hover:bg-rose-50 rounded transition-colors cursor-pointer"
+                                title="Delete Image"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </div>
+                          </div>
                         </div>
-                      </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
+                  )}
+
+                  {/* Pagination/Load More controls for Gallery */}
+                  {hasMoreGallery && (
+                    <div className="flex justify-center mt-8">
+                      <button
+                        onClick={handleLoadMoreGallery}
+                        disabled={loadingMoreGallery}
+                        className="px-5 py-2 bg-slate-900 hover:bg-slate-800 disabled:bg-slate-300 text-white rounded-xl text-xs uppercase tracking-wider font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer h-[36px] shadow-sm hover:shadow-md hover:scale-[1.02] active:scale-[0.98]"
+                      >
+                        {loadingMoreGallery ? (
+                          <>
+                            <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                            Loading...
+                          </>
+                        ) : (
+                          <>
+                            <ChevronDown className="h-4 w-4" />
+                            Load More
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </div>

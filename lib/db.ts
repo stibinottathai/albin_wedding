@@ -19,6 +19,7 @@ export interface WeddingInfo {
   brideParents: string;
   brideSiblings: string;
   categories?: string; // serialized JSON array of guest categories
+  galleryCategories?: string; // serialized JSON array of gallery categories
 }
 
 export interface WeddingEvent {
@@ -58,7 +59,7 @@ export interface Wish {
 export interface GalleryImage {
   id: string;
   src: string;
-  category: "pre-wedding" | "engagement" | "family" | "memories";
+  category: string;
   alt: string;
   createdAt: string;
 }
@@ -110,6 +111,7 @@ const DEFAULT_WEDDING_INFO: WeddingInfo = {
   brideParents: "Mr. Joseph & Mrs. Elizabeth Kizhakkekara",
   brideSiblings: "Kevin & Teresa",
   categories: '["General","Family","Friends","Relatives"]',
+  galleryCategories: '["pre-wedding","engagement","family","memories"]',
 };
 
 const DEFAULT_EVENTS: WeddingEvent[] = [
