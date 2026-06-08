@@ -47,7 +47,7 @@ function ParallaxHero({
   const bgY = useTransform(scrollYProgress, [0, 1], ["0%", "25%"]);
 
   return (
-    <section ref={ref} className="relative min-h-[100svh] flex items-center justify-center overflow-hidden py-24 md:py-28" id="home">
+    <section ref={ref} className="relative min-h-[100svh] flex items-center justify-center overflow-hidden py-24 md:py-28 scroll-mt-24" id="home">
       {/* Background Image with Parallax */}
       <motion.div style={{ y: bgY }} className="absolute inset-0 scale-[1.12] z-0">
         <img
@@ -394,7 +394,7 @@ export const InvitationMain: React.FC<InvitationMainProps> = ({ guest }) => {
               </a>
 
               {/* Navigation Links */}
-              <div className="hidden md:flex items-center gap-3 lg:gap-6 flex-nowrap shrink-0">
+              <div className="hidden xl:flex items-center gap-3 xl:gap-6 flex-nowrap shrink-0">
                 <a className={`font-label-md text-xs uppercase tracking-widest transition-all duration-300 whitespace-nowrap ${activeSection === "home" ? "text-[var(--primary)] font-bold border-b border-[var(--primary)] pb-1" : "text-[var(--muted-text)] hover:text-[var(--primary)]"}`} href="#home">
                   {t("saveTheDate")}
                 </a>
@@ -428,10 +428,10 @@ export const InvitationMain: React.FC<InvitationMainProps> = ({ guest }) => {
                 
 
 
-                {/* Hamburger Toggle (Mobile Only) */}
+                {/* Hamburger Toggle (Mobile + Tablet) */}
                 <button
                   onClick={() => setIsMenuOpen(!isMenuOpen)}
-                  className="md:hidden p-1.5 rounded-lg hover:bg-[var(--parchment)]/65 text-[var(--primary)] transition-colors focus:outline-none cursor-pointer shrink-0"
+                  className="xl:hidden p-1.5 rounded-lg hover:bg-[var(--parchment)]/65 text-[var(--primary)] transition-colors focus:outline-none cursor-pointer shrink-0"
                   aria-label="Toggle Navigation Menu"
                 >
                   {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
@@ -439,7 +439,7 @@ export const InvitationMain: React.FC<InvitationMainProps> = ({ guest }) => {
               </div>
             </div>
 
-            {/* Mobile Navigation Drawer */}
+            {/* Mobile/Tablet Navigation Drawer */}
             <AnimatePresence>
               {isMenuOpen && (
                 <motion.div
@@ -447,7 +447,7 @@ export const InvitationMain: React.FC<InvitationMainProps> = ({ guest }) => {
                   animate={{ height: "auto", opacity: 1 }}
                   exit={{ height: 0, opacity: 0 }}
                   transition={{ duration: 0.3, ease: "easeInOut" }}
-                  className="md:hidden w-full bg-[var(--background)]/95 backdrop-blur-lg border-t border-[var(--border-warm)]/30 shadow-lg overflow-hidden"
+                  className="xl:hidden w-full bg-[var(--background)]/95 backdrop-blur-lg border-t border-[var(--border-warm)]/30 shadow-lg overflow-hidden"
                 >
                   <div className="flex flex-col px-6 py-6 gap-4">
                     {[
@@ -458,16 +458,35 @@ export const InvitationMain: React.FC<InvitationMainProps> = ({ guest }) => {
                       { href: "#well-wishes", label: t("wishes"), section: "well-wishes" },
                       { href: "/admin", label: t("login"), section: "admin" }
                     ].map((link) => (
-                      <a
+                      <button
                         key={link.href}
-                        href={link.href}
-                        onClick={() => setIsMenuOpen(false)}
-                        className={`font-label-md text-xs uppercase tracking-widest py-2 transition-all duration-300 ${activeSection === link.section ? "text-[var(--primary)] font-bold pl-2 border-l-2 border-[var(--primary)]" : "text-[var(--muted-text)] hover:text-[var(--primary)]"}`}
+                        onClick={() => {
+                          // Close menu immediately
+                          setIsMenuOpen(false);
+
+                          if (link.href.startsWith("#")) {
+                            const targetId = link.href.substring(1);
+                            // Wait for drawer close animation (300ms) then scroll
+                            setTimeout(() => {
+                              const el = document.getElementById(targetId);
+                              if (el) {
+                                const navHeight = 72;
+                                const top = el.getBoundingClientRect().top + window.scrollY - navHeight;
+                                window.scrollTo({ top, behavior: "smooth" });
+                              }
+                            }, 350);
+                          } else {
+                            // External link like /admin
+                            setTimeout(() => {
+                              window.location.href = link.href;
+                            }, 350);
+                          }
+                        }}
+                        className={`font-label-md text-xs uppercase tracking-widest py-2 text-left transition-all duration-300 ${activeSection === link.section ? "text-[var(--primary)] font-bold pl-2 border-l-2 border-[var(--primary)]" : "text-[var(--muted-text)] hover:text-[var(--primary)]"}`}
                       >
                         {link.label}
-                      </a>
+                      </button>
                     ))}
-                    
 
                   </div>
                 </motion.div>
