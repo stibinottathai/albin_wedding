@@ -367,37 +367,37 @@ export const InvitationMain: React.FC<InvitationMainProps> = ({ guest }) => {
 
           {/* ── 1. TopNavBar (Premium Glassmorphic Header) ── */}
           <nav className="fixed top-0 w-full z-50 bg-[var(--background)]/85 backdrop-blur-md border-b border-[var(--border-warm)]/30 shadow-sm transition-all duration-300 pointer-events-auto">
-            <div className="flex justify-between items-center max-w-[1200px] mx-auto px-6 md:px-12 py-3">
+            <div className="flex justify-between items-center max-w-[1200px] mx-auto px-6 md:px-12 py-3 flex-nowrap gap-4">
               {/* Brand Logo */}
-              <a className="font-display-lg text-2xl md:text-3xl tracking-tighter text-[var(--primary)] hover:opacity-85 transition-opacity duration-200 serif font-medium" href="#home">
+              <a className="font-display-lg text-2xl md:text-3xl tracking-tighter text-[var(--primary)] hover:opacity-85 transition-opacity duration-200 serif font-medium whitespace-nowrap shrink-0" href="#home">
                 ALBIN &amp; STELLA
               </a>
 
               {/* Navigation Links */}
-              <div className="hidden md:flex items-center gap-6">
-                <a className={`font-label-md text-xs uppercase tracking-widest transition-all duration-300 ${activeSection === "home" ? "text-[var(--primary)] font-bold border-b border-[var(--primary)] pb-1" : "text-[var(--muted-text)] hover:text-[var(--primary)]"}`} href="#home">
+              <div className="hidden md:flex items-center gap-3 lg:gap-6 flex-nowrap shrink-0">
+                <a className={`font-label-md text-xs uppercase tracking-widest transition-all duration-300 whitespace-nowrap ${activeSection === "home" ? "text-[var(--primary)] font-bold border-b border-[var(--primary)] pb-1" : "text-[var(--muted-text)] hover:text-[var(--primary)]"}`} href="#home">
                   {t("saveTheDate")}
                 </a>
-                <a className={`font-label-md text-xs uppercase tracking-widest transition-all duration-300 ${activeSection === "our-story" ? "text-[var(--primary)] font-bold border-b border-[var(--primary)] pb-1" : "text-[var(--muted-text)] hover:text-[var(--primary)]"}`} href="#our-story">
+                <a className={`font-label-md text-xs uppercase tracking-widest transition-all duration-300 whitespace-nowrap ${activeSection === "our-story" ? "text-[var(--primary)] font-bold border-b border-[var(--primary)] pb-1" : "text-[var(--muted-text)] hover:text-[var(--primary)]"}`} href="#our-story">
                   {t("ourStory")}
                 </a>
-                <a className={`font-label-md text-xs uppercase tracking-widest transition-all duration-300 ${activeSection === "events" ? "text-[var(--primary)] font-bold border-b border-[var(--primary)] pb-1" : "text-[var(--muted-text)] hover:text-[var(--primary)]"}`} href="#events">
+                <a className={`font-label-md text-xs uppercase tracking-widest transition-all duration-300 whitespace-nowrap ${activeSection === "events" ? "text-[var(--primary)] font-bold border-b border-[var(--primary)] pb-1" : "text-[var(--muted-text)] hover:text-[var(--primary)]"}`} href="#events">
                   {t("schedule")}
                 </a>
-                <a className={`font-label-md text-xs uppercase tracking-widest transition-all duration-300 ${activeSection === "gallery" ? "text-[var(--primary)] font-bold border-b border-[var(--primary)] pb-1" : "text-[var(--muted-text)] hover:text-[var(--primary)]"}`} href="#gallery">
+                <a className={`font-label-md text-xs uppercase tracking-widest transition-all duration-300 whitespace-nowrap ${activeSection === "gallery" ? "text-[var(--primary)] font-bold border-b border-[var(--primary)] pb-1" : "text-[var(--muted-text)] hover:text-[var(--primary)]"}`} href="#gallery">
                   {t("gallery")}
                 </a>
-                <a className={`font-label-md text-xs uppercase tracking-widest transition-all duration-300 ${activeSection === "well-wishes" ? "text-[var(--primary)] font-bold border-b border-[var(--primary)] pb-1" : "text-[var(--muted-text)] hover:text-[var(--primary)]"}`} href="#well-wishes">
+                <a className={`font-label-md text-xs uppercase tracking-widest transition-all duration-300 whitespace-nowrap ${activeSection === "well-wishes" ? "text-[var(--primary)] font-bold border-b border-[var(--primary)] pb-1" : "text-[var(--muted-text)] hover:text-[var(--primary)]"}`} href="#well-wishes">
                   {t("wishes")}
                 </a>
-                <a className={`font-label-md text-xs uppercase tracking-widest transition-all duration-300 ${activeSection === "rsvp" ? "text-[var(--primary)] font-bold border-b border-[var(--primary)] pb-1" : "text-[var(--muted-text)] hover:text-[var(--primary)]"}`} href="#rsvp">
+                <a className={`font-label-md text-xs uppercase tracking-widest transition-all duration-300 whitespace-nowrap ${activeSection === "rsvp" ? "text-[var(--primary)] font-bold border-b border-[var(--primary)] pb-1" : "text-[var(--muted-text)] hover:text-[var(--primary)]"}`} href="#rsvp">
                   {t("rsvp")}
                 </a>
               </div>
 
               {/* Actions: Bilingual Toggle, RSVP & Hamburger */}
-              <div className="flex items-center gap-4">
-                <div className="flex gap-1 bg-[var(--parchment)]/60 rounded-full p-1 border border-[var(--border-warm)]/30">
+              <div className="flex items-center gap-4 flex-nowrap shrink-0">
+                <div className="flex gap-1 bg-[var(--parchment)]/60 rounded-full p-1 border border-[var(--border-warm)]/30 shrink-0">
                   {["en", "ml"].map((lang) => (
                     <button key={lang} onClick={() => setLanguage(lang as "en" | "ml")}
                       className={`text-[10px] uppercase tracking-wider transition-all duration-300 px-2.5 py-1 rounded-full ${language === lang ? "bg-[var(--primary)] text-white font-medium" : "text-[var(--muted-text)] hover:text-[var(--primary)]"}`}>
@@ -407,14 +407,14 @@ export const InvitationMain: React.FC<InvitationMainProps> = ({ guest }) => {
                 </div>
                 
                 {/* Desktop RSVP Button */}
-                <a className="hidden md:inline-flex items-center justify-center px-5 py-2 bg-[var(--primary)] text-white font-semibold text-xs uppercase tracking-widest rounded hover:bg-[var(--primary-container)] hover:text-[var(--charcoal)] transition-all duration-300 shadow-sm" href="#rsvp">
+                <a className="hidden md:inline-flex items-center justify-center px-5 py-2 bg-[var(--primary)] text-white font-semibold text-xs uppercase tracking-widest rounded hover:bg-[var(--primary-container)] hover:text-[var(--charcoal)] transition-all duration-300 shadow-sm whitespace-nowrap shrink-0" href="#rsvp">
                   RSVP
                 </a>
 
                 {/* Hamburger Toggle (Mobile Only) */}
                 <button
                   onClick={() => setIsMenuOpen(!isMenuOpen)}
-                  className="md:hidden p-1.5 rounded-lg hover:bg-[var(--parchment)]/65 text-[var(--primary)] transition-colors focus:outline-none cursor-pointer"
+                  className="md:hidden p-1.5 rounded-lg hover:bg-[var(--parchment)]/65 text-[var(--primary)] transition-colors focus:outline-none cursor-pointer shrink-0"
                   aria-label="Toggle Navigation Menu"
                 >
                   {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
