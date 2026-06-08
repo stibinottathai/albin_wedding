@@ -4,12 +4,10 @@ import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, ChevronLeft, ChevronRight, ZoomIn } from "lucide-react";
-import { useLanguage } from "../context/LanguageContext";
-import { getGalleryImages, GalleryImage } from "../lib/db";
+import { getGalleryImages, getWeddingInfo, GalleryImage } from "../lib/db";
 import { getSupabaseImageUrl } from "../lib/supabase";
 
 export const WeddingGallery: React.FC = () => {
-  const { t } = useLanguage();
   const [images, setImages] = useState<GalleryImage[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"all" | GalleryImage["category"]>("all");
@@ -34,13 +32,46 @@ export const WeddingGallery: React.FC = () => {
     setVisibleCount(6);
   }, [activeTab]);
 
-  const categories = [
-    { id: "all", label: "All" },
-    { id: "pre-wedding", label: t("gallery") + " - Pre" },
-    { id: "engagement", label: t("storyEngagement") },
-    { id: "family", label: t("family") },
-    { id: "memories", label: "Memories" },
-  ];
+  const [categories, setCategories] = useState<{ id: string; label: string }[]>([{ id: "all", label: "All" }]);
+
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const info = await getWeddingInfo();
+        if (info.galleryCategories) {
+          const parsed: string[] = typeof info.galleryCategories === "string"
+            ? JSON.parse(info.galleryCategories)
+            : info.galleryCategories;
+          if (parsed.length > 0) {
+            setCategories([
+              { id: "all", label: "All" },
+              ...parsed.map((cat) => ({
+                id: cat,
+                label: cat.charAt(0).toUpperCase() + cat.slice(1).replace(/-/g, " "),
+              })),
+            ]);
+            return;
+          }
+        }
+      } catch (e) {
+        console.error("Error loading gallery categories:", e);
+      }
+      // Fallback: derive categories from actual images
+      if (images.length > 0) {
+        const uniqueCats = Array.from(new Set(images.map((img) => img.category).filter(Boolean)));
+        if (uniqueCats.length > 0) {
+          setCategories([
+            { id: "all", label: "All" },
+            ...uniqueCats.map((cat) => ({
+              id: cat,
+              label: cat.charAt(0).toUpperCase() + cat.slice(1).replace(/-/g, " "),
+            })),
+          ]);
+        }
+      }
+    };
+    loadCategories();
+  }, [images]);
 
   const filteredImages = activeTab === "all"
     ? images

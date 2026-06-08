@@ -172,6 +172,8 @@ export default function AdminDashboard() {
   const [galleryFilterCategory, setGalleryFilterCategory] = useState("All");
   const [isAddingCustomGalleryCategory, setIsAddingCustomGalleryCategory] = useState(false);
   const [customGalleryCategoryInput, setCustomGalleryCategoryInput] = useState("");
+  const [editingGalleryCatIndex, setEditingGalleryCatIndex] = useState<number | null>(null);
+  const [editingGalleryCatValue, setEditingGalleryCatValue] = useState("");
   const [visibleGalleryCount, setVisibleGalleryCount] = useState(12);
   const [loadingMoreGallery, setLoadingMoreGallery] = useState(false);
   const [uploadType, setUploadType] = useState<"file" | "url">("file");
@@ -715,6 +717,10 @@ export default function AdminDashboard() {
       setCustomGalleryCategoryInput("");
       return;
     }
+    if (galleryCategories.length >= 6) {
+      alert("Maximum 6 gallery categories allowed.");
+      return;
+    }
 
     const updatedCategories = [...galleryCategories, trimmed];
     if (weddingInfo) {
@@ -732,6 +738,74 @@ export default function AdminDashboard() {
     setNewImageCategory(trimmed);
     setIsAddingCustomGalleryCategory(false);
     setCustomGalleryCategoryInput("");
+  };
+
+  const handleRenameGalleryCategory = async (index: number) => {
+    const newName = editingGalleryCatValue.trim();
+    const oldName = galleryCategories[index];
+    if (!newName || newName === oldName) {
+      setEditingGalleryCatIndex(null);
+      return;
+    }
+    if (galleryCategories.includes(newName)) {
+      alert("A category with this name already exists.");
+      return;
+    }
+    const updatedCategories = [...galleryCategories];
+    updatedCategories[index] = newName;
+    // Update all images using the old category name
+    const updatedImages = galleryImages.map((img) =>
+      img.category === oldName ? { ...img, category: newName } : img
+    );
+    if (weddingInfo) {
+      const updatedInfo = { ...weddingInfo, galleryCategories: JSON.stringify(updatedCategories) };
+      try {
+        await saveWeddingInfo(updatedInfo);
+        setWeddingInfo(updatedInfo);
+        // Update each affected image in the database
+        for (const img of updatedImages.filter((i) => i.category === newName)) {
+          await saveGalleryImage(img);
+        }
+        setGalleryImages(updatedImages);
+        if (newImageCategory === oldName) setNewImageCategory(newName);
+        if (galleryFilterCategory === oldName) setGalleryFilterCategory(newName);
+      } catch (err) {
+        console.error("Failed to rename gallery category:", err);
+      }
+    }
+    setEditingGalleryCatIndex(null);
+    setEditingGalleryCatValue("");
+  };
+
+  const handleDeleteGalleryCategory = async (index: number) => {
+    const catToDelete = galleryCategories[index];
+    const hasImages = galleryImages.some((img) => img.category === catToDelete);
+    if (hasImages) {
+      if (!confirm(`"${catToDelete}" has images assigned. They will be moved to "${galleryCategories[0] === catToDelete ? galleryCategories[1] || "uncategorized" : galleryCategories[0]}". Continue?`)) return;
+    } else {
+      if (!confirm(`Delete category "${catToDelete}"?`)) return;
+    }
+    const updatedCategories = galleryCategories.filter((_, i) => i !== index);
+    const fallback = updatedCategories[0] || "uncategorized";
+    const updatedImages = galleryImages.map((img) =>
+      img.category === catToDelete ? { ...img, category: fallback } : img
+    );
+    if (weddingInfo) {
+      const updatedInfo = { ...weddingInfo, galleryCategories: JSON.stringify(updatedCategories) };
+      try {
+        await saveWeddingInfo(updatedInfo);
+        setWeddingInfo(updatedInfo);
+        for (const img of updatedImages.filter((i) => i.category === fallback && galleryImages.find((o) => o.id === i.id)?.category === catToDelete)) {
+          await saveGalleryImage(img);
+        }
+        setGalleryImages(updatedImages);
+        if (newImageCategory === catToDelete) setNewImageCategory(fallback);
+        if (galleryFilterCategory === catToDelete) setGalleryFilterCategory("All");
+      } catch (err) {
+        console.error("Failed to delete gallery category:", err);
+      }
+    }
+    setEditingGalleryCatIndex(null);
   };
 
   // Handle file selection for gallery
@@ -2223,6 +2297,125 @@ export default function AdminDashboard() {
         {/* Tab: Wedding Gallery */}
         {activeTab === "gallery" && (
           <div className="space-y-8 animate-fadeIn">
+            {/* Manage Categories */}
+            <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-200">
+              <div className="flex items-center justify-between mb-4 border-b pb-2">
+                <h3 className="font-serif font-bold text-lg text-slate-900">Manage Categories ({galleryCategories.length}/6)</h3>
+                {galleryCategories.length < 6 && (
+                  <button
+                    type="button"
+                    onClick={() => setIsAddingCustomGalleryCategory(true)}
+                    className="flex items-center gap-1.5 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-[10px] uppercase tracking-wider font-semibold transition-all cursor-pointer"
+                  >
+                    <Plus className="h-3.5 w-3.5" /> Add Category
+                  </button>
+                )}
+              </div>
+
+              {/* Add new category inline */}
+              {isAddingCustomGalleryCategory && (
+                <div className="flex gap-2 items-center mb-4 p-3 bg-slate-50 rounded-xl border border-slate-200 animate-fadeIn">
+                  <input
+                    type="text"
+                    value={customGalleryCategoryInput}
+                    onChange={(e) => setCustomGalleryCategoryInput(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleSaveCustomGalleryCategory(); } }}
+                    placeholder="New category name..."
+                    className="flex-1 px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-slate-400"
+                    autoFocus
+                  />
+                  <button
+                    type="button"
+                    onClick={handleSaveCustomGalleryCategory}
+                    className="p-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg transition-colors cursor-pointer"
+                    title="Save"
+                  >
+                    <Check className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setIsAddingCustomGalleryCategory(false); setCustomGalleryCategoryInput(""); }}
+                    className="p-2 bg-slate-200 hover:bg-slate-300 text-slate-600 rounded-lg transition-colors cursor-pointer"
+                    title="Cancel"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              )}
+
+              {galleryCategories.length === 0 ? (
+                <p className="text-center py-6 text-slate-400 italic text-sm">No categories yet. Add your first one!</p>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                  {galleryCategories.map((cat, idx) => (
+                    <div
+                      key={`${cat}-${idx}`}
+                      className="flex items-center justify-between gap-2 p-3 border border-slate-200 rounded-xl hover:border-slate-300 transition-all bg-slate-50/50"
+                    >
+                      {editingGalleryCatIndex === idx ? (
+                        <div className="flex gap-1.5 items-center flex-1">
+                          <input
+                            type="text"
+                            value={editingGalleryCatValue}
+                            onChange={(e) => setEditingGalleryCatValue(e.target.value)}
+                            onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleRenameGalleryCategory(idx); } if (e.key === "Escape") setEditingGalleryCatIndex(null); }}
+                            className="flex-1 px-2 py-1 border border-slate-300 rounded text-sm focus:outline-none focus:border-slate-500 min-w-0"
+                            autoFocus
+                          />
+                          <button
+                            type="button"
+                            onClick={() => handleRenameGalleryCategory(idx)}
+                            className="p-1.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg transition-colors cursor-pointer shrink-0"
+                            title="Save"
+                          >
+                            <Check className="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setEditingGalleryCatIndex(null)}
+                            className="p-1.5 bg-slate-200 hover:bg-slate-300 text-slate-600 rounded-lg transition-colors cursor-pointer shrink-0"
+                            title="Cancel"
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="w-2 h-2 rounded-full bg-[#d4af37] shrink-0" />
+                            <span className="text-sm font-medium text-slate-700 truncate">
+                              {cat.charAt(0).toUpperCase() + cat.slice(1).replace(/-/g, " ")}
+                            </span>
+                            <span className="text-[10px] text-slate-400 shrink-0">
+                              ({galleryImages.filter((img) => img.category === cat).length})
+                            </span>
+                          </div>
+                          <div className="flex gap-1 shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => { setEditingGalleryCatIndex(idx); setEditingGalleryCatValue(cat); }}
+                              className="p-1.5 text-slate-400 hover:text-[#d4af37] hover:bg-[#d4af37]/10 rounded-lg transition-all cursor-pointer"
+                              title="Rename"
+                            >
+                              <Edit className="h-3.5 w-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteGalleryCategory(idx)}
+                              className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all cursor-pointer"
+                              title="Delete"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
             {/* Upload form */}
             <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-200">
               <h3 className="font-serif font-bold text-lg text-slate-900 mb-4 border-b pb-2">Add New Photo</h3>
@@ -2334,7 +2527,9 @@ export default function AdminDashboard() {
                         {galleryCategories.map((cat) => (
                           <option key={cat} value={cat}>{cat.charAt(0).toUpperCase() + cat.slice(1)}</option>
                         ))}
-                        <option value="__new__">+ Add Custom...</option>
+                        {galleryCategories.length < 6 && (
+                          <option value="__new__">+ Add Custom...</option>
+                        )}
                       </select>
                     )}
                   </div>
