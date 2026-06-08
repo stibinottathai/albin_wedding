@@ -563,7 +563,7 @@ export const InvitationMain: React.FC<InvitationMainProps> = ({ guest }) => {
                 <SectionDivider />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-6xl mx-auto">
+              <div className="flex flex-wrap justify-center gap-8 max-w-6xl mx-auto">
                 {events.map((ev, i) => (
                   <motion.div
                     key={ev.id}
@@ -571,7 +571,7 @@ export const InvitationMain: React.FC<InvitationMainProps> = ({ guest }) => {
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}
                     transition={{ delay: i * 0.1, duration: 0.8 }}
-                    className="bg-[var(--cream)] rounded-2xl border border-[var(--border-warm)]/30 text-center relative overflow-hidden group hover:border-[var(--primary)]/50 hover:-translate-y-2 hover:shadow-[0_20px_50px_-10px_rgba(115,92,0,0.12)] transition-all duration-500 shadow-[0_10px_40px_-10px_rgba(115,92,0,0.04)] flex flex-col justify-between"
+                    className="w-full sm:w-[280px] bg-[var(--cream)] rounded-2xl border border-[var(--border-warm)]/30 text-center relative overflow-hidden group hover:border-[var(--primary)]/50 hover:-translate-y-2 hover:shadow-[0_20px_50px_-10px_rgba(115,92,0,0.12)] transition-all duration-500 shadow-[0_10px_40px_-10px_rgba(115,92,0,0.04)] flex flex-col justify-between"
                   >
                     <div>
                       {/* Image header */}
