@@ -402,7 +402,7 @@ export const InvitationMain: React.FC<InvitationMainProps> = ({ guest, initialWe
           <nav className="fixed top-0 w-full z-50 bg-[var(--background)]/85 backdrop-blur-md border-b border-[var(--border-warm)]/30 shadow-sm transition-all duration-300 pointer-events-auto">
             <div className="flex justify-between items-center max-w-[1200px] mx-auto px-6 md:px-12 py-3 flex-nowrap gap-4">
               {/* Brand Logo */}
-              <a className="flex items-center gap-2 text-[var(--primary)] hover:opacity-85 transition-opacity duration-200 shrink-0" href="#home">
+              <button onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} className="flex items-center gap-2 text-[var(--primary)] hover:opacity-85 transition-opacity duration-200 shrink-0 cursor-pointer bg-transparent border-none">
                 <motion.div
                   animate={{ scale: [1, 1.25, 1, 1.15, 1] }}
                   transition={{ duration: 1.5, repeat: Infinity, repeatDelay: 1 }}
@@ -420,7 +420,7 @@ export const InvitationMain: React.FC<InvitationMainProps> = ({ guest, initialWe
                 >
                   <Heart className="w-5 h-5 fill-[var(--primary)] text-[var(--primary)]" />
                 </motion.div>
-              </a>
+              </button>
 
               {/* Navigation Links */}
               <div className="hidden xl:flex items-center gap-4 xl:gap-8 flex-nowrap shrink-0">
