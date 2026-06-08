@@ -40,12 +40,16 @@ import {
   getEvents,
   saveEvent,
   deleteEvent,
+  getFaqs,
+  saveFaq,
+  deleteFaq,
   WeddingInfo, 
   Guest, 
   Analytics,
   GalleryImage,
   StoryMilestone,
-  WeddingEvent
+  WeddingEvent,
+  FaqItem
 } from "../../lib/db";
 import { supabase, isSupabaseConfigured } from "../../lib/supabase";
 
@@ -61,12 +65,13 @@ interface Wish {
 export default function AdminDashboard() {
   const router = useRouter();
   const storyFormRef = React.useRef<HTMLDivElement>(null);
+  const faqFormRef = React.useRef<HTMLDivElement>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [authError, setAuthError] = useState("");
 
-  const [activeTab, setActiveTab] = useState<"analytics" | "rsvp" | "guests" | "wishes" | "settings" | "gallery" | "stories" | "events">("analytics");
+  const [activeTab, setActiveTab] = useState<"analytics" | "rsvp" | "guests" | "wishes" | "settings" | "gallery" | "stories" | "events" | "faq">("analytics");
   const [rsvpFilter, setRsvpFilter] = useState<"all" | "accepted" | "declined" | "pending">("all");
   const [weddingInfo, setWeddingInfo] = useState<WeddingInfo | null>(null);
   const [guests, setGuests] = useState<Guest[]>([]);
@@ -75,6 +80,14 @@ export default function AdminDashboard() {
   const [galleryImages, setGalleryImages] = useState<GalleryImage[]>([]);
   const [storyMilestones, setStoryMilestones] = useState<StoryMilestone[]>([]);
   const [events, setEvents] = useState<WeddingEvent[]>([]);
+  const [faqs, setFaqs] = useState<FaqItem[]>([]);
+  
+  // FAQ form states
+  const [editingFaqId, setEditingFaqId] = useState<string | null>(null);
+  const [newFaqQuestion, setNewFaqQuestion] = useState("");
+  const [newFaqAnswer, setNewFaqAnswer] = useState("");
+  const [faqSuccess, setFaqSuccess] = useState(false);
+  const [faqError, setFaqError] = useState("");
   
   // Form states for Wedding Events
   const [editingEventId, setEditingEventId] = useState<string | null>(null);
@@ -302,6 +315,8 @@ export default function AdminDashboard() {
       }
       const eventsList = await getEvents();
       setEvents(Array.isArray(eventsList) ? eventsList : []);
+      const faqsList = await getFaqs();
+      setFaqs(Array.isArray(faqsList) ? faqsList : []);
     } catch (err) {
       console.error("Failed to load admin dashboard data:", err);
     }
@@ -1206,6 +1221,15 @@ export default function AdminDashboard() {
               Wedding Events
             </button>
             <button
+              onClick={() => setActiveTab("faq")}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-xs uppercase tracking-wider font-semibold transition-all ${
+                activeTab === "faq" ? "bg-slate-800 text-white border-l-4 border-[#d4af37]" : "hover:bg-slate-800/50 hover:text-white"
+              }`}
+            >
+              <MessageSquare className="h-4 w-4 text-[#d4af37]" />
+              FAQ
+            </button>
+            <button
               onClick={() => setActiveTab("settings")}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-xs uppercase tracking-wider font-semibold transition-all ${
                 activeTab === "settings" ? "bg-slate-800 text-white border-l-4 border-[#d4af37]" : "hover:bg-slate-800/50 hover:text-white"
@@ -1244,6 +1268,7 @@ export default function AdminDashboard() {
                activeTab === "gallery" ? "Wedding Gallery" : 
                activeTab === "stories" ? "Our Story" : 
                activeTab === "events" ? "Wedding Events" : 
+               activeTab === "faq" ? "FAQ Manager" :
                activeTab}
             </h1>
             <p className="text-xs text-slate-500 mt-1">Manage all wedding content, RSVPs, and configurations.</p>
@@ -2384,6 +2409,159 @@ export default function AdminDashboard() {
                           onClick={() => handleDeleteEvent(ev.id, ev.imageUrl)}
                           className="p-1.5 text-rose-500 hover:bg-rose-50 rounded-lg transition-colors border border-transparent hover:border-rose-100 cursor-pointer"
                           title="Delete Event"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Tab: FAQ Manager */}
+        {activeTab === "faq" && (
+          <div className="space-y-8 animate-fadeIn">
+            {/* FAQ Add/Edit Form */}
+            <div ref={faqFormRef} className="bg-white p-8 rounded-2xl shadow-sm border border-slate-200 space-y-6">
+              <h3 className="font-serif font-bold text-lg text-slate-900 border-b pb-2 mb-4">
+                {editingFaqId ? "✏️ Edit FAQ" : "➕ Add New FAQ"}
+              </h3>
+
+              {faqSuccess && (
+                <div className="flex items-center gap-2 text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-3 text-xs font-semibold">
+                  <Check className="h-4 w-4" /> FAQ saved successfully!
+                </div>
+              )}
+              {faqError && (
+                <div className="flex items-center gap-2 text-red-600 bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-xs font-semibold">
+                  <X className="h-4 w-4" /> {faqError}
+                </div>
+              )}
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs uppercase font-bold text-slate-400 mb-1">Question</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. What is the dress code?"
+                    value={newFaqQuestion}
+                    onChange={(e) => setNewFaqQuestion(e.target.value)}
+                    className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#d4af37]/30"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs uppercase font-bold text-slate-400 mb-1">Answer</label>
+                  <textarea
+                    rows={4}
+                    placeholder="Write a clear and helpful answer..."
+                    value={newFaqAnswer}
+                    onChange={(e) => setNewFaqAnswer(e.target.value)}
+                    className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#d4af37]/30"
+                  />
+                </div>
+
+                <div className="flex gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      if (!newFaqQuestion.trim() || !newFaqAnswer.trim()) {
+                        setFaqError("Both question and answer are required.");
+                        return;
+                      }
+                      setFaqError("");
+                      const faq: FaqItem = {
+                        id: editingFaqId || `faq-${Date.now()}`,
+                        question: newFaqQuestion.trim(),
+                        answer: newFaqAnswer.trim(),
+                        orderIndex: editingFaqId
+                          ? (faqs.find(f => f.id === editingFaqId)?.orderIndex ?? faqs.length + 1)
+                          : faqs.length + 1,
+                      };
+                      await saveFaq(faq);
+                      const updated = await getFaqs();
+                      setFaqs(updated);
+                      setNewFaqQuestion("");
+                      setNewFaqAnswer("");
+                      setEditingFaqId(null);
+                      setFaqSuccess(true);
+                      setTimeout(() => setFaqSuccess(false), 3000);
+                    }}
+                    className="px-6 py-2.5 bg-slate-900 hover:bg-slate-700 text-white rounded-lg text-xs uppercase tracking-wider font-semibold transition-all cursor-pointer"
+                  >
+                    {editingFaqId ? "Update FAQ" : "Add FAQ"}
+                  </button>
+                  {editingFaqId && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingFaqId(null);
+                        setNewFaqQuestion("");
+                        setNewFaqAnswer("");
+                        setFaqError("");
+                      }}
+                      className="px-6 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs uppercase tracking-wider font-semibold transition-all cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* FAQ List */}
+            <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-200">
+              <h3 className="font-serif font-bold text-lg text-slate-900 border-b pb-2 mb-6">
+                Current FAQs ({faqs.length})
+              </h3>
+
+              {faqs.length === 0 ? (
+                <div className="text-center py-12 text-slate-400 text-sm">
+                  No FAQs added yet. Use the form above to add your first FAQ.
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {faqs.map((faq, idx) => (
+                    <div
+                      key={faq.id}
+                      className="flex items-start gap-4 p-5 rounded-xl border border-slate-200 hover:border-[#d4af37]/40 transition-all"
+                    >
+                      <span className="flex-shrink-0 w-7 h-7 rounded-full bg-[#d4af37]/10 text-[#d4af37] text-xs font-bold flex items-center justify-center mt-0.5">
+                        {idx + 1}
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-slate-800 mb-1">{faq.question}</p>
+                        <p className="text-xs text-slate-500 leading-relaxed">{faq.answer}</p>
+                      </div>
+                      <div className="flex gap-2 flex-shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingFaqId(faq.id);
+                            setNewFaqQuestion(faq.question);
+                            setNewFaqAnswer(faq.answer);
+                            setFaqError("");
+                            setTimeout(() => {
+                              faqFormRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+                            }, 50);
+                          }}
+                          className="p-2 text-slate-400 hover:text-[#d4af37] hover:bg-[#d4af37]/10 rounded-lg transition-all cursor-pointer"
+                          title="Edit FAQ"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            if (!confirm("Delete this FAQ?")) return;
+                            await deleteFaq(faq.id);
+                            const updated = await getFaqs();
+                            setFaqs(updated);
+                          }}
+                          className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all cursor-pointer"
+                          title="Delete FAQ"
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>

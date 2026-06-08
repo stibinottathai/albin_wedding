@@ -10,7 +10,7 @@ import {
 import { useLanguage } from "../context/LanguageContext";
 import {
   getWeddingInfo, getEvents, updateRSVP, incrementInviteOpened,
-  getStories, WeddingInfo, WeddingEvent, Guest, StoryMilestone
+  getStories, getFaqs, WeddingInfo, WeddingEvent, Guest, StoryMilestone, FaqItem
 } from "../lib/db";
 import Envelope from "./Envelope";
 import MusicPlayer, { MusicPlayerRef } from "./MusicPlayer";
@@ -216,6 +216,7 @@ export const InvitationMain: React.FC<InvitationMainProps> = ({ guest }) => {
   const [weddingInfo, setWeddingInfo] = useState<WeddingInfo | null>(null);
   const [events, setEvents] = useState<WeddingEvent[]>([]);
   const [stories, setStories] = useState<StoryMilestone[]>([]);
+  const [faqs, setFaqs] = useState<FaqItem[]>([]);
   const [isDateRevealed, setIsDateRevealed] = useState(false);
   const [rsvpStatus, setRsvpStatus] = useState<"accepted" | "declined">("accepted");
   const [rsvpAttendees, setRsvpAttendees] = useState(1);
@@ -239,6 +240,8 @@ export const InvitationMain: React.FC<InvitationMainProps> = ({ guest }) => {
       setEvents(evs);
       const sts = await getStories();
       setStories(sts);
+      const faqList = await getFaqs();
+      setFaqs(faqList);
     };
     fetchData();
   }, []);
@@ -343,24 +346,7 @@ export const InvitationMain: React.FC<InvitationMainProps> = ({ guest }) => {
     else window.open(`mailto:?subject=Wedding Invitation — ${weddingInfo?.groomName} %26 ${weddingInfo?.brideName}&body=${enc}`, "_self");
   };
 
-  const faqItems = [
-    {
-      q: "What is the dress code?",
-      a: "We request guests to wear formal or traditional attire. Pastels, champagne, or elegant cream tones are highly welcome.",
-    },
-    {
-      q: "Is parking available?",
-      a: "Complimentary valet parking is available directly at the entrance of Grand Palace Ballroom, Kochi.",
-    },
-    {
-      q: "Can I bring extra guests?",
-      a: `Your invitation is configured for up to ${guest?.allowedAttendees ?? 2} attendees. Please specify the count when you RSVP.`,
-    },
-    {
-      q: "What time should I arrive?",
-      a: "The Church ceremony starts sharp at 10:30 AM. We recommend arriving 15 minutes early to find your seats.",
-    },
-  ];
+  // FAQs are loaded dynamically from the database
 
   if (!weddingInfo) {
     return (
@@ -862,6 +848,7 @@ export const InvitationMain: React.FC<InvitationMainProps> = ({ guest }) => {
           )}
 
           {/* ── 10. FAQ Section ── */}
+          {faqs.length > 0 && (
           <section className="py-24 px-6 bg-[var(--cream)] border-t border-[var(--border-warm)]/20">
             <div className="max-w-2xl mx-auto">
               <div className="text-center mb-16">
@@ -871,11 +858,11 @@ export const InvitationMain: React.FC<InvitationMainProps> = ({ guest }) => {
               </div>
 
               <div className="flex flex-col divide-y divide-[var(--border-warm)]/40 border-b border-[var(--border-warm)]/40">
-                {faqItems.map((faq, i) => (
-                  <div key={i} className="py-2">
+                {faqs.map((faq, i) => (
+                  <div key={faq.id} className="py-2">
                     <button onClick={() => setExpandedFaq(expandedFaq === i ? null : i)}
                       className="w-full py-4 flex justify-between items-center text-left gap-4 group">
-                      <span className="serif text-lg italic text-[var(--charcoal)] group-hover:text-[var(--primary)] transition-colors">{faq.q}</span>
+                      <span className="serif text-lg italic text-[var(--charcoal)] group-hover:text-[var(--primary)] transition-colors">{faq.question}</span>
                       <ChevronDown className={`w-4 h-4 text-[var(--primary)] shrink-0 transition-transform duration-300 ${expandedFaq === i ? "rotate-180" : ""}`} />
                     </button>
                     <AnimatePresence initial={false}>
@@ -887,7 +874,7 @@ export const InvitationMain: React.FC<InvitationMainProps> = ({ guest }) => {
                           transition={{ duration: 0.25 }}
                           className="overflow-hidden"
                         >
-                          <p className="sans text-xs text-[var(--muted-text)] leading-relaxed pb-5">{faq.a}</p>
+                          <p className="sans text-xs text-[var(--muted-text)] leading-relaxed pb-5">{faq.answer}</p>
                         </motion.div>
                       )}
                     </AnimatePresence>
@@ -896,6 +883,7 @@ export const InvitationMain: React.FC<InvitationMainProps> = ({ guest }) => {
               </div>
             </div>
           </section>
+          )}
 
           {/* ── 11. Footer Component ── */}
           <footer className="bg-[var(--charcoal)] text-[var(--cream)] py-16 px-6 text-center relative border-t border-[var(--border-warm)]/10">

@@ -75,6 +75,13 @@ export interface StoryMilestone {
   createdAt: string;
 }
 
+export interface FaqItem {
+  id: string;
+  question: string;
+  answer: string;
+  orderIndex: number;
+}
+
 export interface Analytics {
   totalVisitors: number;
   invitationOpens: number;
@@ -208,6 +215,33 @@ const DEFAULT_WISHES: Wish[] = [
 ];
 
 const DEFAULT_GALLERY_IMAGES: GalleryImage[] = [];
+
+const DEFAULT_FAQS: FaqItem[] = [
+  {
+    id: "faq-1",
+    question: "What is the dress code?",
+    answer: "We request guests to wear formal or traditional attire. Pastels, champagne, or elegant cream tones are highly welcome.",
+    orderIndex: 1,
+  },
+  {
+    id: "faq-2",
+    question: "Is parking available?",
+    answer: "Complimentary valet parking is available directly at the entrance of the venue.",
+    orderIndex: 2,
+  },
+  {
+    id: "faq-3",
+    question: "Can I bring extra guests?",
+    answer: "Your invitation is configured for a set number of attendees. Please specify the count when you RSVP.",
+    orderIndex: 3,
+  },
+  {
+    id: "faq-4",
+    question: "What time should I arrive?",
+    answer: "The Church ceremony starts sharp at 10:30 AM. We recommend arriving 15 minutes early to find your seats.",
+    orderIndex: 4,
+  },
+];
 
 const DEFAULT_STORIES: StoryMilestone[] = [
   {
@@ -351,6 +385,14 @@ class MockDB {
 
   saveStories(stories: StoryMilestone[]): void {
     this.setData("stories", stories);
+  }
+
+  getFaqs(): FaqItem[] {
+    return this.getData<FaqItem[]>("faqs", DEFAULT_FAQS);
+  }
+
+  saveFaqs(faqs: FaqItem[]): void {
+    this.setData("faqs", faqs);
   }
 }
 
@@ -893,4 +935,71 @@ export const deleteStory = async (id: string): Promise<void> => {
   const stories = mockDb.getStories();
   const filtered = stories.filter(s => s.id !== id);
   mockDb.saveStories(filtered);
+};
+
+// ─── FAQ CRUD ───────────────────────────────────────────────────
+
+export const getFaqs = async (): Promise<FaqItem[]> => {
+  if (isSupabaseConfigured) {
+    try {
+      const { data } = await supabase
+        .from("faqs")
+        .select("*")
+        .order("order_index", { ascending: true });
+      if (data && data.length > 0) {
+        return data.map((d: any) => ({
+          id: d.id,
+          question: d.question,
+          answer: d.answer,
+          orderIndex: d.order_index,
+        })) as FaqItem[];
+      }
+      if (data && data.length === 0) {
+        const rows = DEFAULT_FAQS.map(f => ({ ...f, order_index: f.orderIndex }));
+        await supabase.from("faqs").insert(rows);
+        return DEFAULT_FAQS;
+      }
+    } catch (e) {
+      console.error("Supabase getFaqs error:", e);
+    }
+  }
+  return mockDb.getFaqs().sort((a, b) => a.orderIndex - b.orderIndex);
+};
+
+export const saveFaq = async (faq: FaqItem): Promise<void> => {
+  if (isSupabaseConfigured) {
+    try {
+      const { error } = await supabase
+        .from("faqs")
+        .upsert({ id: faq.id, question: faq.question, answer: faq.answer, order_index: faq.orderIndex });
+      if (!error) return;
+    } catch (e) {
+      console.error("Supabase saveFaq error:", e);
+    }
+  }
+  const faqs = mockDb.getFaqs();
+  const index = faqs.findIndex(f => f.id === faq.id);
+  if (index >= 0) {
+    faqs[index] = faq;
+  } else {
+    faqs.push(faq);
+  }
+  mockDb.saveFaqs(faqs);
+};
+
+export const deleteFaq = async (id: string): Promise<void> => {
+  if (isSupabaseConfigured) {
+    try {
+      const { error } = await supabase
+        .from("faqs")
+        .delete()
+        .eq("id", id);
+      if (!error) return;
+    } catch (e) {
+      console.error("Supabase deleteFaq error:", e);
+    }
+  }
+  const faqs = mockDb.getFaqs();
+  const filtered = faqs.filter(f => f.id !== id);
+  mockDb.saveFaqs(filtered);
 };
