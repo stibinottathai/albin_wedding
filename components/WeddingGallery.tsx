@@ -11,9 +11,9 @@ export const WeddingGallery: React.FC = () => {
   const { t } = useLanguage();
   const [images, setImages] = useState<GalleryImage[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<GalleryImage["category"]>("pre-wedding");
+  const [activeTab, setActiveTab] = useState<"all" | GalleryImage["category"]>("all");
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
-  const [showAll, setShowAll] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(6);
 
   useEffect(() => {
     const loadImages = async () => {
@@ -30,18 +30,21 @@ export const WeddingGallery: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    setShowAll(false);
+    setVisibleCount(6);
   }, [activeTab]);
 
   const categories = [
+    { id: "all", label: "All" },
     { id: "pre-wedding", label: t("gallery") + " - Pre" },
     { id: "engagement", label: t("storyEngagement") },
     { id: "family", label: t("family") },
     { id: "memories", label: "Memories" },
   ];
 
-  const filteredImages = images.filter((img) => img.category === activeTab);
-  const displayedImages = showAll ? filteredImages : filteredImages.slice(0, 6);
+  const filteredImages = activeTab === "all"
+    ? images
+    : images.filter((img) => img.category === activeTab);
+  const displayedImages = filteredImages.slice(0, visibleCount);
 
   const openLightbox = (src: string) => {
     const idx = filteredImages.findIndex((img) => img.src === src);
@@ -161,13 +164,23 @@ export const WeddingGallery: React.FC = () => {
             </AnimatePresence>
           </motion.div>
 
-          {filteredImages.length > 6 && (
+          {filteredImages.length > visibleCount && (
             <div className="flex justify-center mt-8">
               <button
-                onClick={() => setShowAll(!showAll)}
+                onClick={() => setVisibleCount((prev) => prev + 6)}
                 className="px-6 py-2.5 bg-[#8b755e] hover:bg-[#705e4c] text-white text-xs uppercase tracking-widest font-semibold rounded-full transition-all duration-300 shadow-sm hover:shadow-md cursor-pointer"
               >
-                {showAll ? "Show Less" : `View All (${filteredImages.length})`}
+                Load More
+              </button>
+            </div>
+          )}
+          {visibleCount > 6 && visibleCount >= filteredImages.length && (
+            <div className="flex justify-center mt-8">
+              <button
+                onClick={() => setVisibleCount(6)}
+                className="px-6 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs uppercase tracking-widest font-semibold rounded-full transition-all duration-300 shadow-sm hover:shadow-md cursor-pointer"
+              >
+                Show Less
               </button>
             </div>
           )}
