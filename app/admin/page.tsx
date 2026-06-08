@@ -22,7 +22,10 @@ import {
   BookOpen,
   Edit,
   Calendar,
-  Menu
+  Menu,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
 import { 
   getWeddingInfo, 
@@ -183,6 +186,73 @@ export default function AdminDashboard() {
   // Feedback states
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
+
+  // Table Pagination states
+  const PAGE_SIZE = 10;
+  const [guestsPage, setGuestsPage] = useState(1);
+  const [rsvpsPage, setRsvpsPage] = useState(1);
+
+  // Reset pagination to page 1 when filters change
+  useEffect(() => {
+    setGuestsPage(1);
+  }, [guestFilterCategory]);
+
+  useEffect(() => {
+    setRsvpsPage(1);
+  }, [rsvpFilter]);
+
+  // Clamp page indices when dataset size shrinks (e.g. deletion of the last item on a page)
+  useEffect(() => {
+    const filtered = guests.filter(
+      (g) => guestFilterCategory === "All" || g.category === guestFilterCategory
+    );
+    const totalPages = Math.ceil(filtered.length / PAGE_SIZE) || 1;
+    if (guestsPage > totalPages) {
+      setGuestsPage(totalPages);
+    }
+  }, [guests, guestFilterCategory, guestsPage]);
+
+  useEffect(() => {
+    const filtered = guests.filter(
+      (g) => rsvpFilter === "all" || g.rsvpStatus === rsvpFilter
+    );
+    const totalPages = Math.ceil(filtered.length / PAGE_SIZE) || 1;
+    if (rsvpsPage > totalPages) {
+      setRsvpsPage(totalPages);
+    }
+  }, [guests, rsvpFilter, rsvpsPage]);
+
+  // Wishes lazy loading/pagination states
+  const [visibleWishesCount, setVisibleWishesCount] = useState(10);
+  const [loadingMoreWishes, setLoadingMoreWishes] = useState(false);
+
+  const handleLoadMoreWishes = () => {
+    setLoadingMoreWishes(true);
+    setTimeout(() => {
+      setVisibleWishesCount((prev) => prev + 10);
+      setLoadingMoreWishes(false);
+    }, 300);
+  };
+
+  // Helper to generate premium page numbers with ellipsis
+  const getPageNumbers = (current: number, total: number) => {
+    if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+    const pages: (number | string)[] = [];
+    pages.push(1);
+    if (current > 3) {
+      pages.push("ellipsis-start");
+    }
+    const start = Math.max(2, current - 1);
+    const end = Math.min(total - 1, current + 1);
+    for (let i = start; i <= end; i++) {
+      pages.push(i);
+    }
+    if (current < total - 2) {
+      pages.push("ellipsis-end");
+    }
+    pages.push(total);
+    return pages;
+  };
 
   const [authLoading, setAuthLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
@@ -1151,6 +1221,28 @@ export default function AdminDashboard() {
     setIsSidebarOpen(false);
   };
 
+  // Filtered and sliced datasets for pagination
+  const filteredRsvps = guests.filter(
+    (g) => rsvpFilter === "all" || g.rsvpStatus === rsvpFilter
+  );
+  const totalRsvpPages = Math.ceil(filteredRsvps.length / PAGE_SIZE) || 1;
+  const displayedRsvps = filteredRsvps.slice(
+    (rsvpsPage - 1) * PAGE_SIZE,
+    rsvpsPage * PAGE_SIZE
+  );
+
+  const filteredGuests = guests.filter(
+    (g) => guestFilterCategory === "All" || g.category === guestFilterCategory
+  );
+  const totalGuestPages = Math.ceil(filteredGuests.length / PAGE_SIZE) || 1;
+  const displayedGuests = filteredGuests.slice(
+    (guestsPage - 1) * PAGE_SIZE,
+    guestsPage * PAGE_SIZE
+  );
+
+  const displayedWishes = wishes.slice(0, visibleWishesCount);
+  const hasMoreWishes = wishes.length > visibleWishesCount;
+
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col text-slate-800">
 
@@ -1248,23 +1340,28 @@ export default function AdminDashboard() {
         </aside>
 
         {/* Main Panel Content */}
-        <main className="flex-1 p-6 md:p-10 overflow-y-auto h-screen md:max-h-screen">
-        {/* Tab Header */}
-        <div className="flex items-center justify-between mb-8 pb-4 border-b border-slate-200">
-          <div>
-            <h1 className="text-2xl font-serif font-bold text-slate-900 capitalize">
-              {activeTab === "settings" ? "Site Settings" : 
-               activeTab === "rsvp" ? "RSVP Responses" : 
-               activeTab === "wishes" ? "Wishes Moderation" : 
-               activeTab === "gallery" ? "Wedding Gallery" : 
-               activeTab === "stories" ? "Our Story" : 
-               activeTab === "events" ? "Wedding Events" : 
-               activeTab === "faq" ? "FAQ Manager" :
-               activeTab}
-            </h1>
-            <p className="text-xs text-slate-500 mt-1">Manage all wedding content, RSVPs, and configurations.</p>
+        <main className="flex-1 flex flex-col h-screen md:max-h-screen overflow-hidden">
+          {/* Tab Header */}
+          <div className="px-6 md:px-10 pt-6 md:pt-10 pb-4 bg-slate-50 border-b border-slate-200 shrink-0 z-20">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-2xl font-serif font-bold text-slate-900 capitalize">
+                  {activeTab === "settings" ? "Site Settings" : 
+                   activeTab === "rsvp" ? "RSVP Responses" : 
+                   activeTab === "wishes" ? "Wishes Moderation" : 
+                   activeTab === "gallery" ? "Wedding Gallery" : 
+                   activeTab === "stories" ? "Our Story" : 
+                   activeTab === "events" ? "Wedding Events" : 
+                   activeTab === "faq" ? "FAQ Manager" :
+                   activeTab}
+                </h1>
+                <p className="text-xs text-slate-500 mt-1">Manage all wedding content, RSVPs, and configurations.</p>
+              </div>
+            </div>
           </div>
-        </div>
+
+          {/* Scrollable Tab Content Container */}
+          <div className="flex-1 p-6 md:p-10 overflow-y-auto">
 
         {/* Tab 1: Analytics */}
         {activeTab === "analytics" && analytics && (
@@ -1382,9 +1479,9 @@ export default function AdminDashboard() {
 
             {/* RSVP Table */}
             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-              <div className="overflow-x-auto">
+              <div className="overflow-auto max-h-[500px]">
                 <table className="w-full border-collapse text-left text-sm text-slate-500">
-                  <thead className="bg-slate-50 text-xs uppercase font-bold text-slate-400 border-b border-slate-200">
+                  <thead className="bg-slate-50 text-xs uppercase font-bold text-slate-400 border-b border-slate-200 sticky top-0 z-10">
                     <tr>
                       <th className="px-6 py-4">Guest Name</th>
                       <th className="px-6 py-4">Status</th>
@@ -1395,10 +1492,9 @@ export default function AdminDashboard() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {guests
-                      .filter(g => rsvpFilter === "all" || g.rsvpStatus === rsvpFilter)
+                    {displayedRsvps
                       .map((g) => (
-                        <tr key={g.id} className="hover:bg-slate-50 transition-colors">
+                        <tr key={g.id} className="hover:bg-slate-50 transition-colors animate-fadeIn">
                           <td className="px-6 py-4">
                             <div className="font-semibold text-slate-900">{g.name}</div>
                             <div className="text-[11px] text-slate-400 italic">{g.greeting}</div>
@@ -1446,7 +1542,7 @@ export default function AdminDashboard() {
                           </td>
                         </tr>
                       ))}
-                    {guests.filter(g => rsvpFilter === "all" || g.rsvpStatus === rsvpFilter).length === 0 && (
+                    {filteredRsvps.length === 0 && (
                       <tr>
                         <td colSpan={6} className="px-6 py-12 text-center text-slate-400 italic">
                           No {rsvpFilter === "all" ? "" : rsvpFilter} responses yet.
@@ -1455,6 +1551,61 @@ export default function AdminDashboard() {
                     )}
                   </tbody>
                 </table>
+              </div>
+
+              {/* Pagination controls */}
+              <div className="flex flex-col sm:flex-row items-center justify-between px-6 py-4 bg-slate-50 border-t border-slate-100 gap-4">
+                <span className="text-xs text-slate-500 font-medium">
+                  Showing {filteredRsvps.length > 0 ? (rsvpsPage - 1) * PAGE_SIZE + 1 : 0}–{Math.min(rsvpsPage * PAGE_SIZE, filteredRsvps.length)} of {filteredRsvps.length} responses
+                </span>
+                
+                {totalRsvpPages > 1 && (
+                  <div className="flex items-center gap-1.5">
+                    {/* Previous Button */}
+                    <button
+                      onClick={() => setRsvpsPage((prev) => Math.max(prev - 1, 1))}
+                      disabled={rsvpsPage === 1}
+                      className="p-1.5 rounded-lg border border-slate-200 bg-white hover:border-slate-400 disabled:opacity-50 disabled:hover:border-slate-200 transition-all cursor-pointer shadow-sm disabled:cursor-default"
+                      title="Previous Page"
+                    >
+                      <ChevronLeft className="h-4 w-4 text-slate-600" />
+                    </button>
+
+                    {/* Page Numbers */}
+                    {getPageNumbers(rsvpsPage, totalRsvpPages).map((p, idx) => {
+                      if (p === "ellipsis-start" || p === "ellipsis-end") {
+                        return (
+                          <span key={`ell-${idx}`} className="px-2 text-xs text-slate-400 font-bold select-none">
+                            ...
+                          </span>
+                        );
+                      }
+                      return (
+                        <button
+                          key={p}
+                          onClick={() => setRsvpsPage(p as number)}
+                          className={`w-8 h-8 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                            rsvpsPage === p
+                              ? "bg-slate-900 text-white shadow-sm"
+                              : "bg-white border border-slate-200 text-slate-600 hover:border-slate-400"
+                          }`}
+                        >
+                          {p}
+                        </button>
+                      );
+                    })}
+
+                    {/* Next Button */}
+                    <button
+                      onClick={() => setRsvpsPage((prev) => Math.min(prev + 1, totalRsvpPages))}
+                      disabled={rsvpsPage === totalRsvpPages}
+                      className="p-1.5 rounded-lg border border-slate-200 bg-white hover:border-slate-400 disabled:opacity-50 disabled:hover:border-slate-200 transition-all cursor-pointer shadow-sm disabled:cursor-default"
+                      title="Next Page"
+                    >
+                      <ChevronRight className="h-4 w-4 text-slate-600" />
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -1612,9 +1763,9 @@ export default function AdminDashboard() {
 
             {/* Guests List Table */}
             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-              <div className="overflow-x-auto">
+              <div className="overflow-auto max-h-[500px]">
                 <table className="w-full border-collapse text-left text-sm text-slate-500">
-                  <thead className="bg-slate-50 text-xs uppercase font-bold text-slate-400 border-b border-slate-200">
+                  <thead className="bg-slate-50 text-xs uppercase font-bold text-slate-400 border-b border-slate-200 sticky top-0 z-10">
                     <tr>
                       <th className="px-6 py-4">Guest Name</th>
                       <th className="px-6 py-4">Category</th>
@@ -1627,10 +1778,9 @@ export default function AdminDashboard() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-200">
-                    {guests
-                      .filter(g => guestFilterCategory === "All" || g.category === guestFilterCategory)
+                    {displayedGuests
                       .map((g) => (
-                        <tr key={g.id} className="hover:bg-slate-50">
+                        <tr key={g.id} className="hover:bg-slate-50 transition-colors animate-fadeIn">
                           <td className="px-6 py-4 font-medium text-slate-900">
                             <div>{g.name}</div>
                             <span className="text-[11px] text-slate-400 italic font-normal">{g.greeting}</span>
@@ -1724,8 +1874,70 @@ export default function AdminDashboard() {
                           </td>
                         </tr>
                       ))}
+                    {filteredGuests.length === 0 && (
+                      <tr>
+                        <td colSpan={8} className="px-6 py-12 text-center text-slate-400 italic animate-fadeIn">
+                          No guests found in this category.
+                        </td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
+              </div>
+
+              {/* Pagination controls */}
+              <div className="flex flex-col sm:flex-row items-center justify-between px-6 py-4 bg-slate-50 border-t border-slate-100 gap-4">
+                <span className="text-xs text-slate-500 font-medium">
+                  Showing {filteredGuests.length > 0 ? (guestsPage - 1) * PAGE_SIZE + 1 : 0}–{Math.min(guestsPage * PAGE_SIZE, filteredGuests.length)} of {filteredGuests.length} guests
+                </span>
+                
+                {totalGuestPages > 1 && (
+                  <div className="flex items-center gap-1.5">
+                    {/* Previous Button */}
+                    <button
+                      onClick={() => setGuestsPage((prev) => Math.max(prev - 1, 1))}
+                      disabled={guestsPage === 1}
+                      className="p-1.5 rounded-lg border border-slate-200 bg-white hover:border-slate-400 disabled:opacity-50 disabled:hover:border-slate-200 transition-all cursor-pointer shadow-sm disabled:cursor-default"
+                      title="Previous Page"
+                    >
+                      <ChevronLeft className="h-4 w-4 text-slate-600" />
+                    </button>
+
+                    {/* Page Numbers */}
+                    {getPageNumbers(guestsPage, totalGuestPages).map((p, idx) => {
+                      if (p === "ellipsis-start" || p === "ellipsis-end") {
+                        return (
+                          <span key={`ell-${idx}`} className="px-2 text-xs text-slate-400 font-bold select-none">
+                            ...
+                          </span>
+                        );
+                      }
+                      return (
+                        <button
+                          key={p}
+                          onClick={() => setGuestsPage(p as number)}
+                          className={`w-8 h-8 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                            guestsPage === p
+                              ? "bg-slate-900 text-white shadow-sm"
+                              : "bg-white border border-slate-200 text-slate-600 hover:border-slate-400"
+                          }`}
+                        >
+                          {p}
+                        </button>
+                      );
+                    })}
+
+                    {/* Next Button */}
+                    <button
+                      onClick={() => setGuestsPage((prev) => Math.min(prev + 1, totalGuestPages))}
+                      disabled={guestsPage === totalGuestPages}
+                      className="p-1.5 rounded-lg border border-slate-200 bg-white hover:border-slate-400 disabled:opacity-50 disabled:hover:border-slate-200 transition-all cursor-pointer shadow-sm disabled:cursor-default"
+                      title="Next Page"
+                    >
+                      <ChevronRight className="h-4 w-4 text-slate-600" />
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -1738,41 +1950,69 @@ export default function AdminDashboard() {
               {wishes.length === 0 ? (
                 <div className="p-12 text-center italic text-slate-400">No wishes found.</div>
               ) : (
-                wishes.map((w) => (
-                  <div key={w.id} className="p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 hover:bg-slate-50">
-                    <div>
-                      <div className="flex items-center gap-2 mb-1.5">
-                        <span className="font-serif font-bold text-slate-900">{w.guestName}</span>
-                        <span className="text-xs text-slate-400">• {new Date(w.timestamp).toLocaleDateString()}</span>
+                <>
+                  {displayedWishes.map((w) => (
+                    <div key={w.id} className="p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 hover:bg-slate-50 animate-fadeIn">
+                      <div>
+                        <div className="flex items-center gap-2 mb-1.5">
+                          <span className="font-serif font-bold text-slate-900">{w.guestName}</span>
+                          <span className="text-xs text-slate-400">• {new Date(w.timestamp).toLocaleDateString()}</span>
+                        </div>
+                        <p className="text-slate-600 italic">"{w.message}"</p>
                       </div>
-                      <p className="text-slate-600 italic">"{w.message}"</p>
-                    </div>
 
-                    <div className="flex gap-2 shrink-0">
-                      {w.approved ? (
+                      <div className="flex gap-2 shrink-0">
+                        {w.approved ? (
+                          <button
+                            onClick={() => handleToggleWish(w.id, false)}
+                            className="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all"
+                          >
+                            Revoke Approval
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => handleToggleWish(w.id, true)}
+                            className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all"
+                          >
+                            Approve
+                          </button>
+                        )}
                         <button
-                          onClick={() => handleToggleWish(w.id, false)}
-                          className="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all"
+                          onClick={() => handleDeleteWish(w.id)}
+                          className="p-1.5 text-rose-500 hover:bg-rose-50 rounded-lg border border-transparent hover:border-rose-100"
                         >
-                          Revoke Approval
+                          <Trash2 className="h-4 w-4" />
                         </button>
-                      ) : (
-                        <button
-                          onClick={() => handleToggleWish(w.id, true)}
-                          className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all"
-                        >
-                          Approve
-                        </button>
-                      )}
-                      <button
-                        onClick={() => handleDeleteWish(w.id)}
-                        className="p-1.5 text-rose-500 hover:bg-rose-50 rounded-lg border border-transparent hover:border-rose-100"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
+                      </div>
                     </div>
+                  ))}
+                  
+                  {/* Pagination controls */}
+                  <div className="flex flex-col sm:flex-row items-center justify-between px-6 py-4 bg-slate-50 border-t border-slate-100 gap-4">
+                    <span className="text-xs text-slate-500 font-medium">
+                      Showing {Math.min(displayedWishes.length, wishes.length)} of {wishes.length} wishes
+                    </span>
+                    {hasMoreWishes && (
+                      <button
+                        onClick={handleLoadMoreWishes}
+                        disabled={loadingMoreWishes}
+                        className="px-5 py-2 bg-slate-900 hover:bg-slate-800 disabled:bg-slate-300 text-white rounded-xl text-xs uppercase tracking-wider font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer h-[36px] shadow-sm hover:shadow-md hover:scale-[1.02] active:scale-[0.98]"
+                      >
+                        {loadingMoreWishes ? (
+                          <>
+                            <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                            Loading...
+                          </>
+                        ) : (
+                          <>
+                            <ChevronDown className="h-4 w-4" />
+                            Load More
+                          </>
+                        )}
+                      </button>
+                    )}
                   </div>
-                ))
+                </>
               )}
             </div>
           </div>
@@ -2756,6 +2996,7 @@ export default function AdminDashboard() {
             </form>
           </div>
         )}
+          </div> {/* End of Scrollable Tab Content Container */}
       </main>
     </div>
 
