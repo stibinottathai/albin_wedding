@@ -55,7 +55,7 @@ import {
   WeddingEvent,
   FaqItem
 } from "../../lib/db";
-import { supabase, isSupabaseConfigured } from "../../lib/supabase";
+import { supabase, isSupabaseConfigured, compressImage } from "../../lib/supabase";
 
 interface Wish {
   id: string;
@@ -86,6 +86,7 @@ export default function AdminDashboard() {
   const [storyMilestones, setStoryMilestones] = useState<StoryMilestone[]>([]);
   const [events, setEvents] = useState<WeddingEvent[]>([]);
   const [faqs, setFaqs] = useState<FaqItem[]>([]);
+  const [deletingImageId, setDeletingImageId] = useState<string | null>(null);
   
   // FAQ form states
   const [editingFaqId, setEditingFaqId] = useState<string | null>(null);
@@ -893,6 +894,9 @@ export default function AdminDashboard() {
       try {
         for (const item of newImageFiles) {
           let src = "";
+          // Compress image client-side to maximum 1920px (full scale for lightbox)
+          const compressedBlob = await compressImage(item.file, 1920, 0.82);
+
           if (isSupabaseConfigured) {
             const fileExt = item.file.name.split(".").pop();
             const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
@@ -900,8 +904,9 @@ export default function AdminDashboard() {
 
             const { error: uploadErr } = await supabase.storage
               .from("gallery")
-              .upload(filePath, item.file, {
-                cacheControl: "3600",
+              .upload(filePath, compressedBlob, {
+                cacheControl: "public, max-age=31536000, immutable",
+                contentType: item.file.type,
                 upsert: false
               });
 
@@ -915,10 +920,10 @@ export default function AdminDashboard() {
 
             src = publicUrl;
           } else {
-            // Local fallback: convert to base64
+            // Local fallback: convert compressed image to base64 (avoids storage quota limits)
             src = await new Promise<string>((resolve, reject) => {
               const reader = new FileReader();
-              reader.readAsDataURL(item.file);
+              reader.readAsDataURL(compressedBlob);
               reader.onload = () => resolve(reader.result as string);
               reader.onerror = (err) => reject(err);
             });
@@ -959,6 +964,7 @@ export default function AdminDashboard() {
   // Gallery: Delete photo
   const handleDeleteImage = async (id: string, src: string) => {
     if (confirm("Are you sure you want to delete this image from the gallery?")) {
+      setDeletingImageId(id);
       try {
         await deleteGalleryImage(id);
 
@@ -972,6 +978,8 @@ export default function AdminDashboard() {
         loadAdminData();
       } catch (err) {
         console.error("Failed to delete image:", err);
+      } finally {
+        setDeletingImageId(null);
       }
     }
   };
@@ -996,6 +1004,9 @@ export default function AdminDashboard() {
     if (storyUploadType === "file" && newStoryImageFile) {
       setStoryUploading(true);
       try {
+        // Compress image client-side to maximum 1200px (timeline images are smaller)
+        const compressedBlob = await compressImage(newStoryImageFile, 1200, 0.8);
+
         if (isSupabaseConfigured) {
           const fileExt = newStoryImageFile.name.split(".").pop();
           const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
@@ -1003,8 +1014,9 @@ export default function AdminDashboard() {
 
           const { error: uploadErr } = await supabase.storage
             .from("stories")
-            .upload(filePath, newStoryImageFile, {
-              cacheControl: "3600",
+            .upload(filePath, compressedBlob, {
+              cacheControl: "public, max-age=31536000, immutable",
+              contentType: newStoryImageFile.type,
               upsert: false
             });
 
@@ -1018,10 +1030,10 @@ export default function AdminDashboard() {
 
           imageUrl = publicUrl;
         } else {
-          // Local fallback: convert to base64
+          // Local fallback: convert compressed image to base64 (avoids storage quota limits)
           imageUrl = await new Promise<string>((resolve, reject) => {
             const reader = new FileReader();
-            reader.readAsDataURL(newStoryImageFile);
+            reader.readAsDataURL(compressedBlob);
             reader.onload = () => resolve(reader.result as string);
             reader.onerror = (err) => reject(err);
           });
@@ -1154,6 +1166,9 @@ export default function AdminDashboard() {
     if (eventUploadType === "file" && newEventImageFile) {
       setEventUploading(true);
       try {
+        // Compress image client-side to maximum 1200px (event cards are smaller)
+        const compressedBlob = await compressImage(newEventImageFile, 1200, 0.8);
+
         if (isSupabaseConfigured) {
           const fileExt = newEventImageFile.name.split(".").pop();
           const fileName = `event_${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
@@ -1161,8 +1176,9 @@ export default function AdminDashboard() {
 
           const { error: uploadErr } = await supabase.storage
             .from("gallery")
-            .upload(filePath, newEventImageFile, {
-              cacheControl: "3600",
+            .upload(filePath, compressedBlob, {
+              cacheControl: "public, max-age=31536000, immutable",
+              contentType: newEventImageFile.type,
               upsert: false
             });
 
@@ -1176,10 +1192,10 @@ export default function AdminDashboard() {
 
           imageUrl = publicUrl;
         } else {
-          // Local fallback: convert to base64
+          // Local fallback: convert compressed image to base64 (avoids storage quota limits)
           imageUrl = await new Promise<string>((resolve, reject) => {
             const reader = new FileReader();
-            reader.readAsDataURL(newEventImageFile);
+            reader.readAsDataURL(compressedBlob);
             reader.onload = () => resolve(reader.result as string);
             reader.onerror = (err) => reject(err);
           });
@@ -2455,10 +2471,15 @@ export default function AdminDashboard() {
                               
                               <button
                                 onClick={() => handleDeleteImage(img.id, img.src)}
-                                className="text-rose-500 hover:text-rose-700 p-1 hover:bg-rose-50 rounded transition-colors cursor-pointer"
+                                disabled={deletingImageId === img.id}
+                                className="text-rose-500 hover:text-rose-700 disabled:text-rose-300 p-1 hover:bg-rose-50 disabled:bg-transparent rounded transition-colors cursor-pointer disabled:cursor-not-allowed"
                                 title="Delete Image"
                               >
-                                <Trash2 className="h-4 w-4" />
+                                {deletingImageId === img.id ? (
+                                  <div className="w-4 h-4 border-2 border-rose-500 border-t-transparent rounded-full animate-spin" />
+                                ) : (
+                                  <Trash2 className="h-4 w-4" />
+                                )}
                               </button>
                             </div>
                           </div>

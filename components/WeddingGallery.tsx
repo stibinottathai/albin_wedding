@@ -54,19 +54,43 @@ export const WeddingGallery: React.FC = () => {
 
   const closeLightbox = () => setLightboxIndex(null);
 
-  const showNext = (e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handleNext = () => {
     if (lightboxIndex !== null && filteredImages.length > 0) {
       setLightboxIndex((prev) => (prev! + 1) % filteredImages.length);
     }
   };
 
-  const showPrev = (e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handlePrev = () => {
     if (lightboxIndex !== null && filteredImages.length > 0) {
       setLightboxIndex((prev) => (prev! - 1 + filteredImages.length) % filteredImages.length);
     }
   };
+
+  const showNext = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    handleNext();
+  };
+
+  const showPrev = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    handlePrev();
+  };
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (lightboxIndex !== null) {
+        if (e.key === "ArrowRight") {
+          handleNext();
+        } else if (e.key === "ArrowLeft") {
+          handlePrev();
+        } else if (e.key === "Escape") {
+          closeLightbox();
+        }
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [lightboxIndex, filteredImages]);
 
   if (loading) {
     return (
@@ -205,7 +229,7 @@ export const WeddingGallery: React.FC = () => {
           >
             <button
               onClick={closeLightbox}
-              className="absolute top-6 right-6 text-white/70 hover:text-white bg-white/10 p-2 rounded-full hover:bg-white/20 transition-all duration-300"
+              className="absolute top-6 right-6 z-50 text-white/70 hover:text-white bg-white/10 p-2 rounded-full hover:bg-white/20 transition-all duration-300 cursor-pointer"
             >
               <X className="h-6 w-6" />
             </button>
@@ -213,24 +237,36 @@ export const WeddingGallery: React.FC = () => {
             {/* Navigation Buttons */}
             <button
               onClick={showPrev}
-              className="absolute left-4 top-1/2 -translate-y-1/2 text-white/70 hover:text-white bg-white/10 p-3 rounded-full hover:bg-white/20 transition-all duration-300"
+              className="absolute left-4 top-1/2 -translate-y-1/2 z-50 text-white/70 hover:text-white bg-white/10 p-3 rounded-full hover:bg-white/20 transition-all duration-300 cursor-pointer"
             >
               <ChevronLeft className="h-6 w-6" />
             </button>
             <button
               onClick={showNext}
-              className="absolute right-4 top-1/2 -translate-y-1/2 text-white/70 hover:text-white bg-white/10 p-3 rounded-full hover:bg-white/20 transition-all duration-300"
+              className="absolute right-4 top-1/2 -translate-y-1/2 z-50 text-white/70 hover:text-white bg-white/10 p-3 rounded-full hover:bg-white/20 transition-all duration-300 cursor-pointer"
             >
               <ChevronRight className="h-6 w-6" />
             </button>
 
             {/* Selected Image */}
             <motion.div
+              key={lightboxIndex}
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
               transition={{ duration: 0.3 }}
-              className="w-full max-w-4xl max-h-[85vh] overflow-hidden rounded-lg flex flex-col items-center"
+              drag="x"
+              dragConstraints={{ left: 0, right: 0 }}
+              dragElastic={0.6}
+              onDragEnd={(e, info) => {
+                const swipeThreshold = 50;
+                if (info.offset.x < -swipeThreshold) {
+                  handleNext();
+                } else if (info.offset.x > swipeThreshold) {
+                  handlePrev();
+                }
+              }}
+              className="w-full max-w-4xl max-h-[85vh] overflow-hidden rounded-lg flex flex-col items-center select-none touch-none cursor-grab active:cursor-grabbing"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="relative w-full h-[65vh] sm:h-[80vh]">

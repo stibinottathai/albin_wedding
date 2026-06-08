@@ -40,3 +40,75 @@ export function getSupabaseImageUrl(url: string, preset: 'thumb' | 'full'): stri
     return `${url}${separator}width=${width}&quality=${quality}`;
   }
 }
+
+/**
+ * Compresses an image file client-side using Canvas.
+ * Resizes the image so that its width/height does not exceed a maximum dimension,
+ * and outputs a compressed JPEG or PNG blob.
+ * 
+ * @param file The original File object
+ * @param maxDimension Maximum width or height in pixels (defaults to 1920)
+ * @param quality Quality factor between 0 and 1 (defaults to 0.8)
+ */
+export async function compressImage(
+  file: File,
+  maxDimension: number = 1920,
+  quality: number = 0.8
+): Promise<Blob> {
+  return new Promise((resolve) => {
+    // If we're not in a browser environment or the file is not an image, resolve with the original file
+    if (typeof window === "undefined" || !file.type.startsWith("image/")) {
+      resolve(file);
+      return;
+    }
+
+    const img = new Image();
+    img.src = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(img.src);
+      
+      let width = img.width;
+      let height = img.height;
+
+      // Keep aspect ratio
+      if (width > maxDimension || height > maxDimension) {
+        if (width > height) {
+          height = Math.round((height * maxDimension) / width);
+          width = maxDimension;
+        } else {
+          width = Math.round((width * maxDimension) / height);
+          height = maxDimension;
+        }
+      }
+
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        resolve(file);
+        return;
+      }
+
+      ctx.drawImage(img, 0, 0, width, height);
+
+      let mimeType = "image/jpeg";
+      if (file.type === "image/png" || file.type === "image/webp") {
+        mimeType = file.type;
+      }
+
+      canvas.toBlob(
+        (blob) => {
+          resolve(blob || file);
+        },
+        mimeType,
+        quality
+      );
+    };
+
+    img.onerror = () => {
+      resolve(file);
+    };
+  });
+}
