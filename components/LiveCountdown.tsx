@@ -67,17 +67,17 @@ export const LiveCountdown: React.FC<LiveCountdownProps> = ({ targetDate }) => {
   }
 
   return (
-    <div className="flex gap-4 md:gap-8 items-center justify-center text-center glass-panel px-6 py-4 md:px-8 md:py-6 rounded-xl border border-[var(--border-warm)]/30 shadow-[0_10px_40px_-10px_rgba(115,92,0,0.1)]">
+    <div className="flex gap-1.5 sm:gap-4 md:gap-6 items-center justify-center text-center glass-panel px-2 py-3 sm:px-6 sm:py-4 md:px-8 md:py-6 rounded-xl border border-[var(--border-warm)]/30 shadow-[0_10px_40px_-10px_rgba(115,92,0,0.1)] w-full">
       {timeItems.map((item, index) => (
         <React.Fragment key={item.label}>
-          {index > 0 && <div className="w-px h-12 bg-[var(--border-warm)]/50 self-center" />}
+          {index > 0 && <div className="w-px h-8 sm:h-12 bg-[var(--border-warm)]/50 self-center" />}
           <motion.div
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.1, duration: 0.6 }}
-            className="flex flex-col min-w-[60px]"
+            className="flex flex-col min-w-[50px] sm:min-w-[60px]"
           >
-            <div className="relative overflow-hidden h-9 sm:h-12 w-full flex items-center justify-center">
+            <div className="relative overflow-hidden h-8 sm:h-12 w-full flex items-center justify-center">
               <AnimatePresence mode="popLayout">
                 <motion.span
                   key={item.value}
@@ -85,13 +85,13 @@ export const LiveCountdown: React.FC<LiveCountdownProps> = ({ targetDate }) => {
                   animate={{ y: 0, opacity: 1 }}
                   exit={{ y: -15, opacity: 0 }}
                   transition={{ type: "spring", stiffness: 200, damping: 18 }}
-                  className="text-3xl sm:text-4xl font-light text-[var(--primary)] tracking-tight serif"
+                  className="text-2xl sm:text-4xl font-light text-[var(--primary)] tracking-tight serif"
                 >
                   {String(item.value).padStart(2, "0")}
                 </motion.span>
               </AnimatePresence>
             </div>
-            <span className="sans text-[9px] sm:text-[10px] uppercase tracking-widest text-[var(--muted-text)] font-semibold mt-1">
+            <span className="sans text-[8px] sm:text-[10px] uppercase tracking-widest text-[var(--muted-text)] font-semibold mt-0.5 sm:mt-1">
               {item.label}
             </span>
           </motion.div>

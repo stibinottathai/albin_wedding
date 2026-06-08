@@ -1,18 +1,4 @@
-import { db } from "./firebase";
-import { 
-  doc, 
-  getDoc, 
-  setDoc, 
-  updateDoc, 
-  collection, 
-  getDocs, 
-  addDoc, 
-  query, 
-  where, 
-  orderBy, 
-  deleteDoc,
-  increment
-} from "firebase/firestore";
+import { supabase, isSupabaseConfigured } from "./supabase";
 
 // --- Types ---
 export interface WeddingInfo {
@@ -285,67 +271,76 @@ const mockDb = new MockDB();
 // --- Unified API Service ---
 
 export const getWeddingInfo = async (): Promise<WeddingInfo> => {
-  if (db) {
+  if (isSupabaseConfigured) {
     try {
-      const docRef = doc(db, "wedding_info", "main");
-      const docSnap = await getDoc(docRef);
-      if (docSnap.exists()) {
-        return docSnap.data() as WeddingInfo;
+      const { data, error } = await supabase
+        .from("wedding_info")
+        .select("*")
+        .eq("id", "main")
+        .single();
+      if (data) {
+        return data as WeddingInfo;
       }
-      // Populate firestore if empty
-      await setDoc(docRef, DEFAULT_WEDDING_INFO);
-      return DEFAULT_WEDDING_INFO;
+      if (error && error.code === "PGRST116") {
+        const { error: insertError } = await supabase
+          .from("wedding_info")
+          .insert({ id: "main", ...DEFAULT_WEDDING_INFO });
+        if (!insertError) return DEFAULT_WEDDING_INFO;
+      }
     } catch (e) {
-      console.error("Firestore getWeddingInfo error:", e);
+      console.error("Supabase getWeddingInfo error:", e);
     }
   }
   return mockDb.getWeddingInfo();
 };
 
 export const saveWeddingInfo = async (info: WeddingInfo): Promise<void> => {
-  if (db) {
+  if (isSupabaseConfigured) {
     try {
-      const docRef = doc(db, "wedding_info", "main");
-      await setDoc(docRef, info, { merge: true });
-      return;
+      const { error } = await supabase
+        .from("wedding_info")
+        .upsert({ id: "main", ...info });
+      if (!error) return;
     } catch (e) {
-      console.error("Firestore saveWeddingInfo error:", e);
+      console.error("Supabase saveWeddingInfo error:", e);
     }
   }
   mockDb.saveWeddingInfo(info);
 };
 
 export const getEvents = async (): Promise<WeddingEvent[]> => {
-  if (db) {
+  if (isSupabaseConfigured) {
     try {
-      const colRef = collection(db, "events");
-      const querySnap = await getDocs(colRef);
-      if (!querySnap.empty) {
-        const events: WeddingEvent[] = [];
-        querySnap.forEach((doc) => {
-          events.push({ id: doc.id, ...doc.data() } as WeddingEvent);
-        });
-        return events;
+      const { data, error } = await supabase
+        .from("events")
+        .select("*")
+        .order("date", { ascending: true })
+        .order("time", { ascending: true });
+      if (data && data.length > 0) {
+        return data as WeddingEvent[];
       }
-      // Pre-populate Firestore if empty
-      for (const ev of DEFAULT_EVENTS) {
-        await setDoc(doc(db, "events", ev.id), ev);
+      if (data && data.length === 0) {
+        const { error: insertError } = await supabase
+          .from("events")
+          .insert(DEFAULT_EVENTS);
+        if (!insertError) return DEFAULT_EVENTS;
       }
-      return DEFAULT_EVENTS;
     } catch (e) {
-      console.error("Firestore getEvents error:", e);
+      console.error("Supabase getEvents error:", e);
     }
   }
   return mockDb.getEvents();
 };
 
 export const saveEvent = async (event: WeddingEvent): Promise<void> => {
-  if (db) {
+  if (isSupabaseConfigured) {
     try {
-      await setDoc(doc(db, "events", event.id), event);
-      return;
+      const { error } = await supabase
+        .from("events")
+        .upsert(event);
+      if (!error) return;
     } catch (e) {
-      console.error("Firestore saveEvent error:", e);
+      console.error("Supabase saveEvent error:", e);
     }
   }
   const events = mockDb.getEvents();
@@ -359,16 +354,18 @@ export const saveEvent = async (event: WeddingEvent): Promise<void> => {
 };
 
 export const getGuest = async (guestId: string): Promise<Guest | null> => {
-  if (db) {
+  if (isSupabaseConfigured) {
     try {
-      const docRef = doc(db, "guests", guestId);
-      const docSnap = await getDoc(docRef);
-      if (docSnap.exists()) {
-        return docSnap.data() as Guest;
+      const { data, error } = await supabase
+        .from("guests")
+        .select("*")
+        .eq("id", guestId)
+        .single();
+      if (data) {
+        return data as Guest;
       }
-      return null;
     } catch (e) {
-      console.error("Firestore getGuest error:", e);
+      console.error("Supabase getGuest error:", e);
     }
   }
   const guests = mockDb.getGuests();
@@ -382,18 +379,20 @@ export const updateRSVP = async (
   rsvpMessage: string
 ): Promise<void> => {
   const updatedAt = new Date().toISOString();
-  if (db) {
+  if (isSupabaseConfigured) {
     try {
-      const docRef = doc(db, "guests", guestId);
-      await updateDoc(docRef, {
-        rsvpStatus,
-        rsvpAttendees,
-        rsvpMessage,
-        updatedAt
-      });
-      return;
+      const { error } = await supabase
+        .from("guests")
+        .update({
+          rsvpStatus,
+          rsvpAttendees,
+          rsvpMessage,
+          updatedAt
+        })
+        .eq("id", guestId);
+      if (!error) return;
     } catch (e) {
-      console.error("Firestore updateRSVP error:", e);
+      console.error("Supabase updateRSVP error:", e);
     }
   }
   const guests = mockDb.getGuests();
@@ -411,15 +410,21 @@ export const updateRSVP = async (
 };
 
 export const incrementInviteOpened = async (guestId: string): Promise<void> => {
-  if (db) {
+  if (isSupabaseConfigured) {
     try {
-      const docRef = doc(db, "guests", guestId);
-      await updateDoc(docRef, {
-        openedCount: increment(1)
-      });
+      const { data } = await supabase
+        .from("guests")
+        .select("openedCount")
+        .eq("id", guestId)
+        .single();
+      const currentCount = data?.openedCount || 0;
+      await supabase
+        .from("guests")
+        .update({ openedCount: currentCount + 1 })
+        .eq("id", guestId);
       return;
     } catch (e) {
-      console.error("Firestore incrementInviteOpened error:", e);
+      console.error("Supabase incrementInviteOpened error:", e);
     }
   }
   const guests = mockDb.getGuests();
@@ -435,17 +440,19 @@ export const submitWish = async (guestName: string, message: string, emoji: stri
     id: Math.random().toString(36).substring(2, 11),
     guestName,
     message,
-    approved: false, // Moderated by default
+    approved: false,
     timestamp: new Date().toISOString(),
     emoji
   };
 
-  if (db) {
+  if (isSupabaseConfigured) {
     try {
-      await setDoc(doc(db, "wishes", wish.id), wish);
-      return wish;
+      const { error } = await supabase
+        .from("wishes")
+        .insert(wish);
+      if (!error) return wish;
     } catch (e) {
-      console.error("Firestore submitWish error:", e);
+      console.error("Supabase submitWish error:", e);
     }
   }
   const wishes = mockDb.getWishes();
@@ -455,21 +462,23 @@ export const submitWish = async (guestName: string, message: string, emoji: stri
 };
 
 export const getWishes = async (includeUnapproved = false): Promise<Wish[]> => {
-  if (db) {
+  if (isSupabaseConfigured) {
     try {
-      const colRef = collection(db, "wishes");
-      let q = query(colRef, orderBy("timestamp", "desc"));
+      let queryBuilder = supabase
+        .from("wishes")
+        .select("*")
+        .order("timestamp", { ascending: false });
+      
       if (!includeUnapproved) {
-        q = query(colRef, where("approved", "==", true), orderBy("timestamp", "desc"));
+        queryBuilder = queryBuilder.eq("approved", true);
       }
-      const querySnap = await getDocs(q);
-      const wishes: Wish[] = [];
-      querySnap.forEach((doc) => {
-        wishes.push(doc.data() as Wish);
-      });
-      return wishes;
+      
+      const { data, error } = await queryBuilder;
+      if (data) {
+        return data as Wish[];
+      }
     } catch (e) {
-      console.error("Firestore getWishes error:", e);
+      console.error("Supabase getWishes error:", e);
     }
   }
   const wishes = mockDb.getWishes();
@@ -481,12 +490,15 @@ export const getWishes = async (includeUnapproved = false): Promise<Wish[]> => {
 };
 
 export const updateWishStatus = async (wishId: string, approved: boolean): Promise<void> => {
-  if (db) {
+  if (isSupabaseConfigured) {
     try {
-      await updateDoc(doc(db, "wishes", wishId), { approved });
-      return;
+      const { error } = await supabase
+        .from("wishes")
+        .update({ approved })
+        .eq("id", wishId);
+      if (!error) return;
     } catch (e) {
-      console.error("Firestore updateWishStatus error:", e);
+      console.error("Supabase updateWishStatus error:", e);
     }
   }
   const wishes = mockDb.getWishes();
@@ -498,12 +510,15 @@ export const updateWishStatus = async (wishId: string, approved: boolean): Promi
 };
 
 export const deleteWish = async (wishId: string): Promise<void> => {
-  if (db) {
+  if (isSupabaseConfigured) {
     try {
-      await deleteDoc(doc(db, "wishes", wishId));
-      return;
+      const { error } = await supabase
+        .from("wishes")
+        .delete()
+        .eq("id", wishId);
+      if (!error) return;
     } catch (e) {
-      console.error("Firestore deleteWish error:", e);
+      console.error("Supabase deleteWish error:", e);
     }
   }
   const wishes = mockDb.getWishes();
@@ -512,17 +527,17 @@ export const deleteWish = async (wishId: string): Promise<void> => {
 };
 
 export const getGuests = async (): Promise<Guest[]> => {
-  if (db) {
+  if (isSupabaseConfigured) {
     try {
-      const colRef = collection(db, "guests");
-      const querySnap = await getDocs(colRef);
-      const guests: Guest[] = [];
-      querySnap.forEach((doc) => {
-        guests.push(doc.data() as Guest);
-      });
-      return guests;
+      const { data, error } = await supabase
+        .from("guests")
+        .select("*")
+        .order("name", { ascending: true });
+      if (data) {
+        return data as Guest[];
+      }
     } catch (e) {
-      console.error("Firestore getGuests error:", e);
+      console.error("Supabase getGuests error:", e);
     }
   }
   return mockDb.getGuests();
@@ -541,12 +556,14 @@ export const createGuest = async (name: string, greeting: string, allowedAttende
     rsvpMessage: "",
   };
 
-  if (db) {
+  if (isSupabaseConfigured) {
     try {
-      await setDoc(doc(db, "guests", newGuest.id), newGuest);
-      return newGuest;
+      const { error } = await supabase
+        .from("guests")
+        .insert(newGuest);
+      if (!error) return newGuest;
     } catch (e) {
-      console.error("Firestore createGuest error:", e);
+      console.error("Supabase createGuest error:", e);
     }
   }
   const guests = mockDb.getGuests();
@@ -556,12 +573,15 @@ export const createGuest = async (name: string, greeting: string, allowedAttende
 };
 
 export const deleteGuest = async (guestId: string): Promise<void> => {
-  if (db) {
+  if (isSupabaseConfigured) {
     try {
-      await deleteDoc(doc(db, "guests", guestId));
-      return;
+      const { error } = await supabase
+        .from("guests")
+        .delete()
+        .eq("id", guestId);
+      if (!error) return;
     } catch (e) {
-      console.error("Firestore deleteGuest error:", e);
+      console.error("Supabase deleteGuest error:", e);
     }
   }
   const guests = mockDb.getGuests();
@@ -570,19 +590,26 @@ export const deleteGuest = async (guestId: string): Promise<void> => {
 };
 
 export const getAnalytics = async (): Promise<Analytics> => {
-  if (db) {
+  if (isSupabaseConfigured) {
     try {
       const guests = await getGuests();
-      const infoSnap = await getDoc(doc(db, "analytics", "traffic"));
+      const { data, error } = await supabase
+        .from("analytics")
+        .select("totalVisitors")
+        .eq("id", "traffic")
+        .single();
+      
       let totalVisitors = 1;
-      if (infoSnap.exists()) {
-        totalVisitors = infoSnap.data().totalVisitors || 1;
+      if (data) {
+        totalVisitors = data.totalVisitors;
       }
+      
       const invitationOpens = guests.reduce((sum, g) => sum + (g.openedCount > 0 ? 1 : 0), 0);
       const rsvpAccepted = guests.filter(g => g.rsvpStatus === "accepted").length;
       const rsvpDeclined = guests.filter(g => g.rsvpStatus === "declined").length;
       const totalGuestsAllowed = guests.reduce((sum, g) => sum + g.allowedAttendees, 0);
       const totalGuestsAttending = guests.reduce((sum, g) => sum + (g.rsvpStatus === "accepted" ? g.rsvpAttendees : 0), 0);
+      
       return {
         totalVisitors,
         invitationOpens,
@@ -592,20 +619,29 @@ export const getAnalytics = async (): Promise<Analytics> => {
         totalGuestsAttending,
       };
     } catch (e) {
-      console.error("Firestore getAnalytics error:", e);
+      console.error("Supabase getAnalytics error:", e);
     }
   }
   return mockDb.getAnalytics();
 };
 
 export const incrementPageVisit = async (): Promise<void> => {
-  if (db) {
+  if (isSupabaseConfigured) {
     try {
-      const docRef = doc(db, "analytics", "traffic");
-      await setDoc(docRef, { totalVisitors: increment(1) }, { merge: true });
+      const { data, error } = await supabase
+        .from("analytics")
+        .select("totalVisitors")
+        .eq("id", "traffic")
+        .single();
+      
+      const currentCount = data?.totalVisitors || 0;
+      
+      await supabase
+        .from("analytics")
+        .upsert({ id: "traffic", totalVisitors: currentCount + 1 });
       return;
     } catch (e) {
-      console.error("Firestore incrementPageVisit error:", e);
+      console.error("Supabase incrementPageVisit error:", e);
     }
   }
   mockDb.incrementVisitorCount();

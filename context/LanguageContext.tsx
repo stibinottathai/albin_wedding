@@ -28,6 +28,10 @@ const translations: Translations = {
     en: "Reveal Our Special Day",
     ml: "വിവാഹ തീയതി കാണുക",
   },
+  revealDateGuide: {
+    en: "Tap to reveal our special day",
+    ml: "തീയതി കാണാൻ ഇവിടെ ക്ലിക്ക് ചെയ്യുക",
+  },
   days: {
     en: "Days",
     ml: "ദിനങ്ങൾ",

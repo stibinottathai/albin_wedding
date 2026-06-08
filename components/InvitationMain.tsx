@@ -4,7 +4,8 @@ import React, { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence, useScroll, useTransform } from "framer-motion";
 import {
   Calendar, MapPin, Phone, MessageCircle, Mail, Send,
-  ChevronDown, Check, Users, User, ArrowRight, ExternalLink, Heart
+  ChevronDown, Check, Users, User, ArrowRight, ExternalLink, Heart,
+  Menu, X
 } from "lucide-react";
 import { useLanguage } from "../context/LanguageContext";
 import {
@@ -20,17 +21,31 @@ import WishesWall from "./WishesWall";
 /* ─── ParallaxHero — styled according to Stitch specifications ─── */
 interface ParallaxHeroProps {
   label: string;
-  weddingDate: string;
   petals: { id: number; size: number; left: number; duration: number; delay: number }[];
+  isDateRevealed: boolean;
+  handleDateReveal: () => void;
+  weddingDate: string;
+  locationName: string;
+  handleShare: (platform: "whatsapp" | "telegram" | "email") => void;
+  t: (key: string) => string;
 }
 
-function ParallaxHero({ label, weddingDate, petals }: ParallaxHeroProps) {
+function ParallaxHero({
+  label,
+  petals,
+  isDateRevealed,
+  handleDateReveal,
+  weddingDate,
+  locationName,
+  handleShare,
+  t
+}: ParallaxHeroProps) {
   const ref = useRef<HTMLElement>(null);
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end start"] });
   const bgY = useTransform(scrollYProgress, [0, 1], ["0%", "25%"]);
 
   return (
-    <section ref={ref} className="relative h-[100svh] min-h-[600px] flex items-center justify-center overflow-hidden" id="home">
+    <section ref={ref} className="relative min-h-[100svh] flex items-center justify-center overflow-hidden py-24 md:py-28" id="home">
       {/* Background Image with Parallax */}
       <motion.div style={{ y: bgY }} className="absolute inset-0 scale-[1.12] z-0">
         <img
@@ -39,7 +54,7 @@ function ParallaxHero({ label, weddingDate, petals }: ParallaxHeroProps) {
           className="w-full h-full object-cover"
         />
         {/* Soft overlay to ensure readability */}
-        <div className="absolute inset-0 bg-[var(--cream)]/35 backdrop-blur-[1.5px]" />
+        <div className="absolute inset-0 bg-[var(--cream)]/35 backdrop-blur-[1.5px] pointer-events-none" />
       </motion.div>
 
       {/* Floating Rose Petals Container */}
@@ -60,7 +75,7 @@ function ParallaxHero({ label, weddingDate, petals }: ParallaxHeroProps) {
       </div>
 
       {/* Hero Content */}
-      <div className="relative z-20 text-center px-6 md:px-12 max-w-[1200px] mx-auto flex flex-col items-center justify-center h-full pt-20">
+      <div className="relative z-20 text-center px-6 md:px-12 max-w-[1200px] mx-auto flex flex-col items-center justify-center w-full pt-12 md:pt-16">
         <motion.h1
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
@@ -74,22 +89,96 @@ function ParallaxHero({ label, weddingDate, petals }: ParallaxHeroProps) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.3, duration: 0.8 }}
-          className="font-body-lg text-xs md:text-sm text-[var(--muted-text)] mb-10 tracking-[0.25em] uppercase font-semibold"
+          className="font-body-lg text-xs md:text-sm text-[var(--muted-text)] mb-6 tracking-[0.25em] uppercase font-semibold"
         >
           {label}
         </motion.p>
 
-        {/* Unified Countdown Timer */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.96 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.5, duration: 0.8 }}
-          className="z-30"
-        >
-          <LiveCountdown targetDate={weddingDate} />
-        </motion.div>
+        {/* Tap to Reveal Date */}
+        <div className="w-full flex flex-col items-center justify-center pointer-events-auto">
+          <AnimatePresence mode="wait">
+            {!isDateRevealed ? (
+              <motion.div
+                key="reveal-btn-wrapper"
+                className="flex flex-col items-center gap-3.5"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                transition={{ duration: 0.4 }}
+              >
+                <motion.button
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{
+                    opacity: 1,
+                    scale: [1, 1.04, 1],
+                    boxShadow: [
+                      "0 4px 14px 0 rgba(115, 92, 0, 0.25)",
+                      "0 8px 24px 6px rgba(115, 92, 0, 0.45)",
+                      "0 4px 14px 0 rgba(115, 92, 0, 0.25)"
+                    ]
+                  }}
+                  whileHover={{ scale: 1.06 }}
+                  whileTap={{ scale: 0.95 }}
+                  transition={{
+                    opacity: { duration: 0.4 },
+                    scale: { repeat: Infinity, duration: 2, ease: "easeInOut" },
+                    boxShadow: { repeat: Infinity, duration: 2, ease: "easeInOut" }
+                  }}
+                  onClick={handleDateReveal}
+                  className="inline-flex items-center gap-3 bg-[var(--primary)] text-white sans text-xs uppercase tracking-widest px-8 py-4 rounded hover:bg-[var(--primary-container)] hover:text-[var(--charcoal)] transition-all duration-300 font-semibold cursor-pointer z-20"
+                >
+                  <Calendar className="w-4 h-4 animate-bounce" />
+                  {t("revealDate")}
+                </motion.button>
+                <motion.p
+                  initial={{ opacity: 0, y: 5 }}
+                  animate={{ opacity: [0.45, 0.95, 0.45] }}
+                  transition={{ repeat: Infinity, duration: 2, ease: "easeInOut", delay: 0.5 }}
+                  className="sans text-[10px] uppercase tracking-[0.25em] text-[var(--primary)] font-bold mt-1"
+                >
+                  ✦ {t("revealDateGuide")} ✦
+                </motion.p>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="revealed-content"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8, ease: "easeOut" }}
+                className="flex flex-col items-center gap-6 w-full z-20"
+              >
+                {/* Revealed Card */}
+                <div className="bg-[var(--cream)]/90 backdrop-blur-md rounded-3xl border border-[var(--border-warm)]/30 shadow-[0_15px_50px_-15px_rgba(115,92,0,0.06)] p-4 sm:p-8 w-full max-w-md">
+                  <p className="sans text-[10px] uppercase tracking-widest text-[var(--muted-text)] font-bold mb-3">The Celebration Begins In</p>
+                  
+                  <LiveCountdown targetDate={weddingDate} />
+                  
+                  <div className="border-t border-[var(--border-warm)]/40 mt-6 pt-6">
+                    <p className="serif italic text-2xl text-[var(--charcoal)] font-light">Saturday, November 28, 2026</p>
+                    <p className="sans text-[10px] text-[var(--primary)] tracking-widest mt-1.5 uppercase font-bold">10:30 AM · Holy Matrimony</p>
+                    <p className="sans text-xs text-[var(--muted-text)] mt-1">{locationName}</p>
+                  </div>
+                </div>
 
-        <div className="mt-12 animate-bounce">
+                {/* Sharing actions */}
+                <div className="flex flex-wrap justify-center gap-3 text-[var(--muted-text)]">
+                  {[
+                    { icon: <MessageCircle className="w-4 h-4" />, label: "WhatsApp", fn: "whatsapp" as const },
+                    { icon: <Send className="w-4 h-4 -rotate-45" />, label: "Telegram", fn: "telegram" as const },
+                    { icon: <Mail className="w-4 h-4" />, label: "Email", fn: "email" as const },
+                  ].map((s) => (
+                    <button key={s.fn} onClick={() => handleShare(s.fn)}
+                      className="flex items-center gap-2 border border-[var(--border-warm)]/60 rounded px-4 py-2 sans text-xs hover:border-[var(--primary)] hover:text-[var(--primary)] transition-colors cursor-pointer bg-[var(--cream)]/90 backdrop-blur-md shadow-sm">
+                      {s.icon} {s.label}
+                    </button>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        <div className="mt-10 animate-bounce">
           <a className="text-[var(--primary)] opacity-70 hover:opacity-100 transition-opacity" href="#our-story">
             <ChevronDown className="w-8 h-8" />
           </a>
@@ -120,6 +209,7 @@ export const InvitationMain: React.FC<InvitationMainProps> = ({ guest }) => {
   const [isEnvelopeOpened, setIsEnvelopeOpened] = useState(false);
   const [weddingInfo, setWeddingInfo] = useState<WeddingInfo | null>(null);
   const [events, setEvents] = useState<WeddingEvent[]>([]);
+  const [isDateRevealed, setIsDateRevealed] = useState(false);
   const [rsvpStatus, setRsvpStatus] = useState<"accepted" | "declined">("accepted");
   const [rsvpAttendees, setRsvpAttendees] = useState(1);
   const [rsvpMessage, setRsvpMessage] = useState("");
@@ -129,6 +219,7 @@ export const InvitationMain: React.FC<InvitationMainProps> = ({ guest }) => {
   const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
   const [activeSection, setActiveSection] = useState("");
   const [petals, setPetals] = useState<{ id: number; size: number; left: number; duration: number; delay: number }[]>([]);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const musicPlayerRef = useRef<MusicPlayerRef>(null);
 
@@ -182,6 +273,12 @@ export const InvitationMain: React.FC<InvitationMainProps> = ({ guest }) => {
     if (guest) {
       try { await incrementInviteOpened(guest.id); } catch (_) {}
     }
+  };
+
+  const handleDateReveal = () => {
+    if (isDateRevealed) return;
+    setIsDateRevealed(true);
+    musicPlayerRef.current?.play();
   };
 
   const handleRsvpSubmit = async (e: React.FormEvent) => {
@@ -278,6 +375,9 @@ export const InvitationMain: React.FC<InvitationMainProps> = ({ guest }) => {
 
               {/* Navigation Links */}
               <div className="hidden md:flex items-center gap-6">
+                <a className={`font-label-md text-xs uppercase tracking-widest transition-all duration-300 ${activeSection === "home" ? "text-[var(--primary)] font-bold border-b border-[var(--primary)] pb-1" : "text-[var(--muted-text)] hover:text-[var(--primary)]"}`} href="#home">
+                  {t("saveTheDate")}
+                </a>
                 <a className={`font-label-md text-xs uppercase tracking-widest transition-all duration-300 ${activeSection === "our-story" ? "text-[var(--primary)] font-bold border-b border-[var(--primary)] pb-1" : "text-[var(--muted-text)] hover:text-[var(--primary)]"}`} href="#our-story">
                   {t("ourStory")}
                 </a>
@@ -295,7 +395,7 @@ export const InvitationMain: React.FC<InvitationMainProps> = ({ guest }) => {
                 </a>
               </div>
 
-              {/* Actions: Bilingual Toggle & RSVP Button */}
+              {/* Actions: Bilingual Toggle, RSVP & Hamburger */}
               <div className="flex items-center gap-4">
                 <div className="flex gap-1 bg-[var(--parchment)]/60 rounded-full p-1 border border-[var(--border-warm)]/30">
                   {["en", "ml"].map((lang) => (
@@ -305,17 +405,79 @@ export const InvitationMain: React.FC<InvitationMainProps> = ({ guest }) => {
                     </button>
                   ))}
                 </div>
+                
+                {/* Desktop RSVP Button */}
                 <a className="hidden md:inline-flex items-center justify-center px-5 py-2 bg-[var(--primary)] text-white font-semibold text-xs uppercase tracking-widest rounded hover:bg-[var(--primary-container)] hover:text-[var(--charcoal)] transition-all duration-300 shadow-sm" href="#rsvp">
                   RSVP
                 </a>
+
+                {/* Hamburger Toggle (Mobile Only) */}
+                <button
+                  onClick={() => setIsMenuOpen(!isMenuOpen)}
+                  className="md:hidden p-1.5 rounded-lg hover:bg-[var(--parchment)]/65 text-[var(--primary)] transition-colors focus:outline-none cursor-pointer"
+                  aria-label="Toggle Navigation Menu"
+                >
+                  {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+                </button>
               </div>
             </div>
+
+            {/* Mobile Navigation Drawer */}
+            <AnimatePresence>
+              {isMenuOpen && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.3, ease: "easeInOut" }}
+                  className="md:hidden w-full bg-[var(--background)]/95 backdrop-blur-lg border-t border-[var(--border-warm)]/30 shadow-lg overflow-hidden"
+                >
+                  <div className="flex flex-col px-6 py-6 gap-4">
+                    {[
+                      { href: "#home", label: t("saveTheDate"), section: "home" },
+                      { href: "#our-story", label: t("ourStory"), section: "our-story" },
+                      { href: "#events", label: t("schedule"), section: "events" },
+                      { href: "#gallery", label: t("gallery"), section: "gallery" },
+                      { href: "#well-wishes", label: t("wishes"), section: "well-wishes" },
+                      { href: "#rsvp", label: t("rsvp"), section: "rsvp" }
+                    ].map((link) => (
+                      <a
+                        key={link.href}
+                        href={link.href}
+                        onClick={() => setIsMenuOpen(false)}
+                        className={`font-label-md text-xs uppercase tracking-widest py-2 transition-all duration-300 ${activeSection === link.section ? "text-[var(--primary)] font-bold pl-2 border-l-2 border-[var(--primary)]" : "text-[var(--muted-text)] hover:text-[var(--primary)]"}`}
+                      >
+                        {link.label}
+                      </a>
+                    ))}
+                    
+                    {/* Mobile Menu RSVP Button */}
+                    <a
+                      href="#rsvp"
+                      onClick={() => setIsMenuOpen(false)}
+                      className="flex items-center justify-center py-3.5 mt-2 bg-[var(--primary)] text-white font-semibold text-xs uppercase tracking-widest rounded hover:bg-[var(--primary-container)] hover:text-[var(--charcoal)] transition-all duration-300 shadow-sm"
+                    >
+                      RSVP
+                    </a>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </nav>
 
           {/* ── 2. Hero Section (Parallax & Floating Petals) ── */}
-          <ParallaxHero label={t("youAreInvited")} weddingDate={weddingInfo.weddingDate} petals={petals} />
+          <ParallaxHero
+            label={t("youAreInvited")}
+            petals={petals}
+            isDateRevealed={isDateRevealed}
+            handleDateReveal={handleDateReveal}
+            weddingDate={weddingInfo.weddingDate}
+            locationName={weddingInfo.locationName}
+            handleShare={handleShare}
+            t={t}
+          />
 
-          {/* ── 3. Our Story Section (Timeline with Grayscale Hover Effects) ── */}
+          {/* ── 4. Our Story Section (Timeline with Grayscale Hover Effects) ── */}
           <section className="py-24 px-6 bg-[var(--cream)] relative overflow-hidden" id="our-story">
             {/* Subtle decorative background blur */}
             <div className="absolute top-0 right-0 w-80 h-80 bg-[var(--rose-light)]/15 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
@@ -400,7 +562,7 @@ export const InvitationMain: React.FC<InvitationMainProps> = ({ guest }) => {
             </div>
           </section>
 
-          {/* ── 4. The Celebration Section (Events with Premium Card layout) ── */}
+          {/* ── 5. The Celebration Section (Events with Premium Card layout) ── */}
           <section className="py-24 px-6 bg-[var(--surface-container-low)] relative" id="events">
             <div className="max-w-[1200px] mx-auto">
               <div className="text-center mb-16">
@@ -461,7 +623,7 @@ export const InvitationMain: React.FC<InvitationMainProps> = ({ guest }) => {
             </div>
           </section>
 
-          {/* ── 5. Venue Section (Clean editorial layouts and Map) ── */}
+          {/* ── 6. Venue Section (Clean editorial layouts and Map) ── */}
           <section className="py-24 px-6 bg-[var(--cream)] relative" id="venue">
             <div className="max-w-[1200px] mx-auto">
               <div className="text-center mb-16">
@@ -514,7 +676,7 @@ export const InvitationMain: React.FC<InvitationMainProps> = ({ guest }) => {
             </div>
           </section>
 
-          {/* ── 6. Captured Moments (Gallery) ── */}
+          {/* ── 7. Captured Moments (Gallery) ── */}
           <section className="py-24 px-6 bg-[var(--surface-container-low)]" id="gallery">
             <div className="max-w-6xl mx-auto">
               <div className="text-center mb-16">
@@ -526,7 +688,7 @@ export const InvitationMain: React.FC<InvitationMainProps> = ({ guest }) => {
             </div>
           </section>
 
-          {/* ── 7. Wishes Wall ── */}
+          {/* ── 8. Wishes Wall ── */}
           <section className="py-24 px-6 bg-[var(--cream)]" id="well-wishes">
             <div className="max-w-4xl mx-auto">
               <div className="text-center mb-16">
@@ -538,7 +700,7 @@ export const InvitationMain: React.FC<InvitationMainProps> = ({ guest }) => {
             </div>
           </section>
 
-          {/* ── 8. RSVP Section (Stitch Style Adaptations) ── */}
+          {/* ── 9. RSVP Section (Stitch Style Adaptations) ── */}
           <section className="py-24 px-6 bg-[var(--surface-container-low)]" id="rsvp">
             <div className="max-w-[700px] mx-auto bg-[var(--cream)] rounded-3xl p-8 md:p-14 border border-[var(--border-warm)]/20 shadow-[0_15px_50px_-15px_rgba(115,92,0,0.06)] relative overflow-hidden">
               {/* Watercolor decorative blurs */}
@@ -692,7 +854,7 @@ export const InvitationMain: React.FC<InvitationMainProps> = ({ guest }) => {
             </div>
           </section>
 
-          {/* ── 9. FAQ Section ── */}
+          {/* ── 10. FAQ Section ── */}
           <section className="py-24 px-6 bg-[var(--cream)] border-t border-[var(--border-warm)]/20">
             <div className="max-w-2xl mx-auto">
               <div className="text-center mb-16">
@@ -728,7 +890,7 @@ export const InvitationMain: React.FC<InvitationMainProps> = ({ guest }) => {
             </div>
           </section>
 
-          {/* ── 10. Footer Component ── */}
+          {/* ── 11. Footer Component ── */}
           <footer className="bg-[var(--charcoal)] text-[var(--cream)] py-16 px-6 text-center relative border-t border-[var(--border-warm)]/10">
             <h3 className="serif italic text-3xl mb-4 text-[var(--sage-light)]">Albin &amp; Stella</h3>
             <div className="w-16 h-px bg-[var(--sage-light)]/30 mx-auto my-6" />
