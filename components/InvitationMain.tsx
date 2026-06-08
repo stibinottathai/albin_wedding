@@ -889,6 +889,20 @@ export const InvitationMain: React.FC<InvitationMainProps> = ({ guest }) => {
               © {new Date().getFullYear()} {weddingInfo.groomName} &amp; {weddingInfo.brideName}. Forever &amp; Always. ·{" "}
               <a href="/admin" className="hover:text-[var(--sage-light)] transition-colors underline">Admin Login</a>
             </p>
+            
+            {/* Developer Contact Link */}
+            <div className="mt-8 md:mt-0 md:absolute md:right-6 md:bottom-6 text-center md:text-right">
+              <a
+                href="https://wa.me/918848053964"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 sans text-[9px] text-white/35 hover:text-[var(--sage-light)] transition-all uppercase tracking-[0.15em] font-medium hover:underline"
+              >
+                <span>Create a website like this</span>
+                <span className="w-1 h-1 bg-[var(--sage-light)]/40 rounded-full" />
+                <MessageCircle className="w-3 h-3 text-[#25D366]" />
+              </a>
+            </div>
           </footer>
 
         </motion.div>
