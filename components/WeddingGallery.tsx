@@ -11,8 +11,9 @@ export const WeddingGallery: React.FC = () => {
   const { t } = useLanguage();
   const [images, setImages] = useState<GalleryImage[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"all" | GalleryImage["category"]>("all");
+  const [activeTab, setActiveTab] = useState<GalleryImage["category"]>("pre-wedding");
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const [showAll, setShowAll] = useState(false);
 
   useEffect(() => {
     const loadImages = async () => {
@@ -28,20 +29,22 @@ export const WeddingGallery: React.FC = () => {
     loadImages();
   }, []);
 
+  useEffect(() => {
+    setShowAll(false);
+  }, [activeTab]);
+
   const categories = [
-    { id: "all", label: "All" },
     { id: "pre-wedding", label: t("gallery") + " - Pre" },
     { id: "engagement", label: t("storyEngagement") },
     { id: "family", label: t("family") },
     { id: "memories", label: "Memories" },
   ];
 
-  const filteredImages = activeTab === "all"
-    ? images
-    : images.filter((img) => img.category === activeTab);
+  const filteredImages = images.filter((img) => img.category === activeTab);
+  const displayedImages = showAll ? filteredImages : filteredImages.slice(0, 6);
 
   const openLightbox = (src: string) => {
-    const idx = images.findIndex((img) => img.src === src);
+    const idx = filteredImages.findIndex((img) => img.src === src);
     setLightboxIndex(idx >= 0 ? idx : null);
   };
 
@@ -49,15 +52,15 @@ export const WeddingGallery: React.FC = () => {
 
   const showNext = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (lightboxIndex !== null && images.length > 0) {
-      setLightboxIndex((prev) => (prev! + 1) % images.length);
+    if (lightboxIndex !== null && filteredImages.length > 0) {
+      setLightboxIndex((prev) => (prev! + 1) % filteredImages.length);
     }
   };
 
   const showPrev = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (lightboxIndex !== null && images.length > 0) {
-      setLightboxIndex((prev) => (prev! - 1 + images.length) % images.length);
+    if (lightboxIndex !== null && filteredImages.length > 0) {
+      setLightboxIndex((prev) => (prev! - 1 + filteredImages.length) % filteredImages.length);
     }
   };
 
@@ -118,49 +121,62 @@ export const WeddingGallery: React.FC = () => {
       </div>
 
       {/* Masonry-like Grid */}
-      {filteredImages.length === 0 ? (
+      {displayedImages.length === 0 ? (
         <div className="text-center py-16 text-muted-foreground/60 italic text-xs">
           No photos in this category yet.
         </div>
       ) : (
-        <motion.div
-          layout
-          className="columns-1 sm:columns-2 md:columns-3 gap-4 px-4 space-y-4 max-w-5xl mx-auto"
-        >
-          <AnimatePresence mode="popLayout">
-            {filteredImages.map((img) => (
-              <motion.div
-                key={img.id || img.src}
-                layout
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                transition={{ duration: 0.4 }}
-                className="relative break-inside-avoid rounded-xl overflow-hidden shadow-md group cursor-pointer border border-[#e5dfd1] dark:border-[#223830]"
-                onClick={() => openLightbox(img.src)}
-              >
-                <img
-                  src={img.src}
-                  alt={img.alt || "Wedding moment"}
-                  loading="lazy"
-                  className="w-full h-auto object-cover transition-transform duration-500 group-hover:scale-105"
-                />
-                
-                {/* Overlay on Hover */}
-                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-                  <div className="bg-white/20 backdrop-blur-md p-3 rounded-full border border-white/30 text-white">
-                    <ZoomIn className="h-5 w-5" />
+        <>
+          <motion.div
+            layout
+            className="columns-1 sm:columns-2 md:columns-3 gap-4 px-4 space-y-4 max-w-5xl mx-auto"
+          >
+            <AnimatePresence mode="popLayout">
+              {displayedImages.map((img) => (
+                <motion.div
+                  key={img.id || img.src}
+                  layout
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  transition={{ duration: 0.4 }}
+                  className="relative break-inside-avoid rounded-xl overflow-hidden shadow-md group cursor-pointer border border-[#e5dfd1] dark:border-[#223830]"
+                  onClick={() => openLightbox(img.src)}
+                >
+                  <img
+                    src={img.src}
+                    alt={img.alt || "Wedding moment"}
+                    loading="lazy"
+                    className="w-full h-auto object-cover transition-transform duration-500 group-hover:scale-105"
+                  />
+                  
+                  {/* Overlay on Hover */}
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                    <div className="bg-white/20 backdrop-blur-md p-3 rounded-full border border-white/30 text-white">
+                      <ZoomIn className="h-5 w-5" />
+                    </div>
                   </div>
-                </div>
-              </motion.div>
-            ))}
-          </AnimatePresence>
-        </motion.div>
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </motion.div>
+
+          {filteredImages.length > 6 && (
+            <div className="flex justify-center mt-8">
+              <button
+                onClick={() => setShowAll(!showAll)}
+                className="px-6 py-2.5 bg-[#8b755e] hover:bg-[#705e4c] text-white text-xs uppercase tracking-widest font-semibold rounded-full transition-all duration-300 shadow-sm hover:shadow-md cursor-pointer"
+              >
+                {showAll ? "Show Less" : `View All (${filteredImages.length})`}
+              </button>
+            </div>
+          )}
+        </>
       )}
 
       {/* Lightbox Modal */}
       <AnimatePresence>
-        {lightboxIndex !== null && images[lightboxIndex] && (
+        {lightboxIndex !== null && filteredImages[lightboxIndex] && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -199,12 +215,12 @@ export const WeddingGallery: React.FC = () => {
               onClick={(e) => e.stopPropagation()}
             >
               <img
-                src={images[lightboxIndex].src}
-                alt={images[lightboxIndex].alt || "Wedding moment"}
+                src={filteredImages[lightboxIndex].src}
+                alt={filteredImages[lightboxIndex].alt || "Wedding moment"}
                 className="max-w-full max-h-[80vh] object-contain rounded-lg shadow-2xl"
               />
               <p className="text-white/60 text-xs mt-3 uppercase tracking-widest">
-                {images[lightboxIndex].alt || "Wedding moment"}
+                {filteredImages[lightboxIndex].alt || "Wedding moment"}
               </p>
             </motion.div>
           </motion.div>
