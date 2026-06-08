@@ -16,7 +16,8 @@ import {
   Globe,
   ExternalLink,
   ClipboardList,
-  Filter
+  Filter,
+  Camera
 } from "lucide-react";
 import { 
   getWeddingInfo, 
@@ -25,9 +26,13 @@ import {
   createGuest, 
   deleteGuest, 
   getAnalytics, 
+  getGalleryImages,
+  saveGalleryImage,
+  deleteGalleryImage,
   WeddingInfo, 
   Guest, 
-  Analytics 
+  Analytics,
+  GalleryImage
 } from "../../lib/db";
 import { supabase, isSupabaseConfigured } from "../../lib/supabase";
 
@@ -46,12 +51,23 @@ export default function AdminDashboard() {
   const [password, setPassword] = useState("");
   const [authError, setAuthError] = useState("");
 
-  const [activeTab, setActiveTab] = useState<"analytics" | "rsvp" | "guests" | "wishes" | "settings">("analytics");
+  const [activeTab, setActiveTab] = useState<"analytics" | "rsvp" | "guests" | "wishes" | "settings" | "gallery">("analytics");
   const [rsvpFilter, setRsvpFilter] = useState<"all" | "accepted" | "declined" | "pending">("all");
   const [weddingInfo, setWeddingInfo] = useState<WeddingInfo | null>(null);
   const [guests, setGuests] = useState<Guest[]>([]);
   const [wishes, setWishes] = useState<Wish[]>([]);
   const [analytics, setAnalytics] = useState<Analytics | null>(null);
+  const [galleryImages, setGalleryImages] = useState<GalleryImage[]>([]);
+  
+  // Form states for gallery upload
+  const [newImageFile, setNewImageFile] = useState<File | null>(null);
+  const [newImageUrl, setNewImageUrl] = useState("");
+  const [newImageCategory, setNewImageCategory] = useState<GalleryImage["category"]>("pre-wedding");
+  const [newImageAlt, setNewImageAlt] = useState("");
+  const [uploadType, setUploadType] = useState<"file" | "url">("file");
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState("");
+  const [uploadSuccess, setUploadSuccess] = useState(false);
 
   // Form states for creating new guest
   const [newGuestName, setNewGuestName] = useState("");
@@ -186,6 +202,8 @@ export default function AdminDashboard() {
       setWishes(Array.isArray(wishesList) ? wishesList : []);
       const stats = await getAnalytics();
       setAnalytics(stats);
+      const galleryList = await getGalleryImages();
+      setGalleryImages(Array.isArray(galleryList) ? galleryList : []);
     } catch (err) {
       console.error("Failed to load admin dashboard data:", err);
     }
@@ -279,6 +297,115 @@ export default function AdminDashboard() {
       loadAdminData();
     } catch (err) {
       console.error(err);
+    }
+  };
+
+  // Gallery: Upload and Save photo
+  const handleUploadImage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setUploadError("");
+    setUploadSuccess(false);
+
+    let src = "";
+
+    if (uploadType === "url") {
+      if (!newImageUrl.trim()) {
+        setUploadError("Please enter an image URL.");
+        return;
+      }
+      src = newImageUrl.trim();
+    } else {
+      if (!newImageFile) {
+        setUploadError("Please select an image file to upload.");
+        return;
+      }
+
+      setUploading(true);
+      try {
+        if (isSupabaseConfigured) {
+          const fileExt = newImageFile.name.split(".").pop();
+          const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
+          const filePath = `${fileName}`;
+
+          const { error: uploadErr } = await supabase.storage
+            .from("gallery")
+            .upload(filePath, newImageFile, {
+              cacheControl: "3600",
+              upsert: false
+            });
+
+          if (uploadErr) {
+            throw new Error(`Supabase Storage upload failed: ${uploadErr.message}`);
+          }
+
+          const { data: { publicUrl } } = supabase.storage
+            .from("gallery")
+            .getPublicUrl(filePath);
+
+          src = publicUrl;
+        } else {
+          // Local fallback: convert to base64
+          src = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(newImageFile);
+            reader.onload = () => resolve(reader.result as string);
+            reader.onerror = (err) => reject(err);
+          });
+        }
+      } catch (err: any) {
+        console.error(err);
+        setUploadError(err.message || "Failed to upload image. Please try using an Image URL instead.");
+        setUploading(false);
+        return;
+      }
+    }
+
+    try {
+      const newImage: GalleryImage = {
+        id: `gal-${Math.random().toString(36).substring(2, 9)}`,
+        src,
+        category: newImageCategory,
+        alt: newImageAlt.trim() || `${newImageCategory} photo`,
+        createdAt: new Date().toISOString()
+      };
+
+      await saveGalleryImage(newImage);
+      
+      // Reset form
+      setNewImageFile(null);
+      setNewImageUrl("");
+      setNewImageAlt("");
+      // Clear file input DOM element if present
+      const fileInput = document.getElementById("gallery-file-input") as HTMLInputElement;
+      if (fileInput) fileInput.value = "";
+
+      setUploadSuccess(true);
+      setTimeout(() => setUploadSuccess(false), 3000);
+      loadAdminData();
+    } catch (err: any) {
+      setUploadError(err.message || "Failed to save gallery image.");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  // Gallery: Delete photo
+  const handleDeleteImage = async (id: string, src: string) => {
+    if (confirm("Are you sure you want to delete this image from the gallery?")) {
+      try {
+        await deleteGalleryImage(id);
+
+        // Optional: If it's a Supabase storage URL, try to delete the file from storage bucket
+        if (isSupabaseConfigured && src.includes("/storage/v1/object/public/gallery/")) {
+          const fileName = src.split("/gallery/").pop();
+          if (fileName) {
+            await supabase.storage.from("gallery").remove([fileName]);
+          }
+        }
+        loadAdminData();
+      } catch (err) {
+        console.error("Failed to delete image:", err);
+      }
     }
   };
 
@@ -414,6 +541,15 @@ export default function AdminDashboard() {
             >
               <MessageSquare className="h-4 w-4 text-[#d4af37]" />
               Wishes Moderation
+            </button>
+            <button
+              onClick={() => setActiveTab("gallery")}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-xs uppercase tracking-wider font-semibold transition-all ${
+                activeTab === "gallery" ? "bg-slate-800 text-white border-l-4 border-[#d4af37]" : "hover:bg-slate-800/50 hover:text-white"
+              }`}
+            >
+              <Camera className="h-4 w-4 text-[#d4af37]" />
+              Wedding Gallery
             </button>
             <button
               onClick={() => setActiveTab("settings")}
@@ -805,6 +941,177 @@ export default function AdminDashboard() {
           </div>
         )}
 
+        {/* Tab: Wedding Gallery */}
+        {activeTab === "gallery" && (
+          <div className="space-y-8 animate-fadeIn">
+            {/* Upload form */}
+            <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-200">
+              <h3 className="font-serif font-bold text-lg text-slate-900 mb-4 border-b pb-2">Add New Photo</h3>
+              
+              <form onSubmit={handleUploadImage} className="space-y-6">
+                {/* Upload Type toggle */}
+                <div className="flex gap-6">
+                  <label className="flex items-center gap-2 text-xs font-semibold uppercase text-slate-600 cursor-pointer">
+                    <input 
+                      type="radio" 
+                      name="uploadType" 
+                      checked={uploadType === "file"}
+                      onChange={() => setUploadType("file")}
+                      className="accent-slate-900" 
+                    />
+                    Upload Image File
+                  </label>
+                  <label className="flex items-center gap-2 text-xs font-semibold uppercase text-slate-600 cursor-pointer">
+                    <input 
+                      type="radio" 
+                      name="uploadType" 
+                      checked={uploadType === "url"}
+                      onChange={() => setUploadType("url")}
+                      className="accent-slate-900" 
+                    />
+                    Image URL (External)
+                  </label>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Source Input */}
+                  {uploadType === "file" ? (
+                    <div>
+                      <label className="block text-xs uppercase font-bold text-slate-400 mb-1">Select Image File</label>
+                      <input
+                        id="gallery-file-input"
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          if (e.target.files && e.target.files[0]) {
+                            setNewImageFile(e.target.files[0]);
+                          }
+                        }}
+                        className="w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200"
+                      />
+                      <span className="text-[10px] text-slate-400 mt-1 block">
+                        {!isSupabaseConfigured && "Supabase is not configured. Uploaded files will be stored locally as Base64 in this browser."}
+                        {isSupabaseConfigured && "Uploaded files will be uploaded directly to Supabase storage bucket 'gallery'."}
+                      </span>
+                    </div>
+                  ) : (
+                    <div>
+                      <label className="block text-xs uppercase font-bold text-slate-400 mb-1">Image URL</label>
+                      <input
+                        type="text"
+                        value={newImageUrl}
+                        onChange={(e) => setNewImageUrl(e.target.value)}
+                        placeholder="https://images.unsplash.com/photo-..."
+                        className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm"
+                      />
+                    </div>
+                  )}
+
+                  {/* Category Selection */}
+                  <div>
+                    <label className="block text-xs uppercase font-bold text-slate-400 mb-1">Category</label>
+                    <select
+                      value={newImageCategory}
+                      onChange={(e) => setNewImageCategory(e.target.value as any)}
+                      className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm bg-white"
+                    >
+                      <option value="pre-wedding">Pre-Wedding</option>
+                      <option value="engagement">Engagement</option>
+                      <option value="family">Family / Relatives</option>
+                      <option value="memories">Memories</option>
+                    </select>
+                  </div>
+
+                  {/* Alt Text Description */}
+                  <div className="md:col-span-2">
+                    <label className="block text-xs uppercase font-bold text-slate-400 mb-1">Description / Alt Text</label>
+                    <input
+                      type="text"
+                      value={newImageAlt}
+                      onChange={(e) => setNewImageAlt(e.target.value)}
+                      placeholder="e.g. Groom looking at bride during church ceremony"
+                      className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between border-t pt-4">
+                  <div>
+                    {uploadError && <p className="text-xs text-rose-600 font-medium">{uploadError}</p>}
+                    {uploadSuccess && <p className="text-xs text-emerald-600 font-medium">Photo added to gallery successfully!</p>}
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={uploading}
+                    className="px-6 py-2.5 bg-slate-900 hover:bg-slate-800 disabled:bg-slate-400 text-white rounded-lg text-xs uppercase tracking-wider font-semibold flex items-center gap-1.5 transition-all shadow-sm"
+                  >
+                    {uploading ? (
+                      <>
+                        <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        Uploading...
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="h-4 w-4" />
+                        Add Photo
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            {/* List of current images */}
+            <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-200">
+              <h3 className="font-serif font-bold text-lg text-slate-900 mb-6 border-b pb-2">Gallery Photos ({galleryImages.length})</h3>
+
+              {galleryImages.length === 0 ? (
+                <div className="text-center py-12 text-slate-400 italic">No photos in the gallery. Add some above!</div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                  {galleryImages.map((img) => (
+                    <div key={img.id} className="group relative bg-slate-50 border border-slate-200 rounded-xl overflow-hidden shadow-sm flex flex-col justify-between">
+                      {/* Image Thumbnail */}
+                      <div className="aspect-video relative overflow-hidden bg-slate-200">
+                        <img 
+                          src={img.src} 
+                          alt={img.alt} 
+                          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                        />
+                        <span className="absolute top-2 left-2 bg-slate-900/80 backdrop-blur-sm text-white px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider">
+                          {img.category}
+                        </span>
+                      </div>
+
+                      {/* Info and Actions */}
+                      <div className="p-3.5 flex flex-col justify-between flex-1">
+                        <p className="text-xs text-slate-700 italic font-medium line-clamp-2 mb-3">
+                          "{img.alt || 'No description'}"
+                        </p>
+                        
+                        <div className="flex items-center justify-between border-t pt-2.5 mt-auto">
+                          <span className="text-[9px] text-slate-400 uppercase font-mono">
+                            {img.id.startsWith("gal-") && img.id.length < 15 ? "Seeded" : "Uploaded"}
+                          </span>
+                          
+                          <button
+                            onClick={() => handleDeleteImage(img.id, img.src)}
+                            className="text-rose-500 hover:text-rose-700 p-1 hover:bg-rose-50 rounded transition-colors"
+                            title="Delete Image"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Tab 4: Site Settings */}
         {activeTab === "settings" && weddingInfo && (
           <div className="space-y-8 animate-fadeIn">
@@ -818,7 +1125,7 @@ export default function AdminDashboard() {
                     <input
                       type="text"
                       required
-                      value={weddingInfo.groomName}
+                      value={weddingInfo.groomName || ""}
                       onChange={(e) => handleSettingChange("groomName", e.target.value)}
                       className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm"
                     />
@@ -828,7 +1135,7 @@ export default function AdminDashboard() {
                     <input
                       type="text"
                       required
-                      value={weddingInfo.brideName}
+                      value={weddingInfo.brideName || ""}
                       onChange={(e) => handleSettingChange("brideName", e.target.value)}
                       className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm"
                     />
@@ -838,7 +1145,7 @@ export default function AdminDashboard() {
                     <input
                       type="text"
                       required
-                      value={weddingInfo.tagline}
+                      value={weddingInfo.tagline || ""}
                       onChange={(e) => handleSettingChange("tagline", e.target.value)}
                       className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm"
                     />
@@ -848,7 +1155,7 @@ export default function AdminDashboard() {
                     <input
                       type="datetime-local"
                       required
-                      value={weddingInfo.weddingDate}
+                      value={weddingInfo.weddingDate || ""}
                       onChange={(e) => handleSettingChange("weddingDate", e.target.value)}
                       className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm"
                     />
@@ -857,7 +1164,7 @@ export default function AdminDashboard() {
                     <label className="block text-xs uppercase font-bold text-slate-400 mb-1">Background Music URL</label>
                     <input
                       type="text"
-                      value={weddingInfo.bgMusicUrl}
+                      value={weddingInfo.bgMusicUrl || ""}
                       onChange={(e) => handleSettingChange("bgMusicUrl", e.target.value)}
                       className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm"
                     />
@@ -866,7 +1173,7 @@ export default function AdminDashboard() {
                     <label className="block text-xs uppercase font-bold text-slate-400 mb-1">Video Showcase URL</label>
                     <input
                       type="text"
-                      value={weddingInfo.videoUrl}
+                      value={weddingInfo.videoUrl || ""}
                       onChange={(e) => handleSettingChange("videoUrl", e.target.value)}
                       className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm"
                     />
@@ -881,7 +1188,7 @@ export default function AdminDashboard() {
                     <label className="block text-xs uppercase font-bold text-slate-400 mb-1">Location Venue Name</label>
                     <input
                       type="text"
-                      value={weddingInfo.locationName}
+                      value={weddingInfo.locationName || ""}
                       onChange={(e) => handleSettingChange("locationName", e.target.value)}
                       className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm"
                     />
@@ -890,7 +1197,7 @@ export default function AdminDashboard() {
                     <label className="block text-xs uppercase font-bold text-slate-400 mb-1">Location Address</label>
                     <input
                       type="text"
-                      value={weddingInfo.locationAddress}
+                      value={weddingInfo.locationAddress || ""}
                       onChange={(e) => handleSettingChange("locationAddress", e.target.value)}
                       className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm"
                     />
@@ -899,7 +1206,7 @@ export default function AdminDashboard() {
                     <label className="block text-xs uppercase font-bold text-slate-400 mb-1">Parking Instructions</label>
                     <textarea
                       rows={2}
-                      value={weddingInfo.parkingInfo}
+                      value={weddingInfo.parkingInfo || ""}
                       onChange={(e) => handleSettingChange("parkingInfo", e.target.value)}
                       className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm resize-none"
                     />
@@ -908,7 +1215,7 @@ export default function AdminDashboard() {
                     <label className="block text-xs uppercase font-bold text-slate-400 mb-1">Google Maps Embed URL</label>
                     <input
                       type="text"
-                      value={weddingInfo.googleMapEmbedUrl}
+                      value={weddingInfo.googleMapEmbedUrl || ""}
                       onChange={(e) => handleSettingChange("googleMapEmbedUrl", e.target.value)}
                       className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm"
                     />
@@ -917,7 +1224,7 @@ export default function AdminDashboard() {
                     <label className="block text-xs uppercase font-bold text-slate-400 mb-1">Groom Contact Phone</label>
                     <input
                       type="text"
-                      value={weddingInfo.contactGroom}
+                      value={weddingInfo.contactGroom || ""}
                       onChange={(e) => handleSettingChange("contactGroom", e.target.value)}
                       className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm"
                     />
@@ -926,7 +1233,7 @@ export default function AdminDashboard() {
                     <label className="block text-xs uppercase font-bold text-slate-400 mb-1">Bride Contact Phone</label>
                     <input
                       type="text"
-                      value={weddingInfo.contactBride}
+                      value={weddingInfo.contactBride || ""}
                       onChange={(e) => handleSettingChange("contactBride", e.target.value)}
                       className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm"
                     />
@@ -941,7 +1248,7 @@ export default function AdminDashboard() {
                     <label className="block text-xs uppercase font-bold text-slate-400 mb-1">Groom Parents</label>
                     <input
                       type="text"
-                      value={weddingInfo.groomParents}
+                      value={weddingInfo.groomParents || ""}
                       onChange={(e) => handleSettingChange("groomParents", e.target.value)}
                       className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm"
                     />
@@ -950,7 +1257,7 @@ export default function AdminDashboard() {
                     <label className="block text-xs uppercase font-bold text-slate-400 mb-1">Bride Parents</label>
                     <input
                       type="text"
-                      value={weddingInfo.brideParents}
+                      value={weddingInfo.brideParents || ""}
                       onChange={(e) => handleSettingChange("brideParents", e.target.value)}
                       className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm"
                     />
@@ -959,7 +1266,7 @@ export default function AdminDashboard() {
                     <label className="block text-xs uppercase font-bold text-slate-400 mb-1">Groom Siblings</label>
                     <input
                       type="text"
-                      value={weddingInfo.groomSiblings}
+                      value={weddingInfo.groomSiblings || ""}
                       onChange={(e) => handleSettingChange("groomSiblings", e.target.value)}
                       className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm"
                     />
@@ -968,7 +1275,7 @@ export default function AdminDashboard() {
                     <label className="block text-xs uppercase font-bold text-slate-400 mb-1">Bride Siblings</label>
                     <input
                       type="text"
-                      value={weddingInfo.brideSiblings}
+                      value={weddingInfo.brideSiblings || ""}
                       onChange={(e) => handleSettingChange("brideSiblings", e.target.value)}
                       className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm"
                     />

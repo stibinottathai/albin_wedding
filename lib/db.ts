@@ -53,6 +53,14 @@ export interface Wish {
   emoji?: string;
 }
 
+export interface GalleryImage {
+  id: string;
+  src: string;
+  category: "pre-wedding" | "engagement" | "family" | "memories";
+  alt: string;
+  createdAt: string;
+}
+
 export interface Analytics {
   totalVisitors: number;
   invitationOpens: number;
@@ -184,6 +192,8 @@ const DEFAULT_WISHES: Wish[] = [
   }
 ];
 
+const DEFAULT_GALLERY_IMAGES: GalleryImage[] = [];
+
 // --- Local Storage Mock Engine ---
 class MockDB {
   private getStorageKey(key: string): string {
@@ -263,6 +273,14 @@ class MockDB {
   incrementVisitorCount(): void {
     const current = this.getData<number>("visitor_count", 24);
     this.setData("visitor_count", current + 1);
+  }
+
+  getGalleryImages(): GalleryImage[] {
+    return this.getData<GalleryImage[]>("gallery", DEFAULT_GALLERY_IMAGES);
+  }
+
+  saveGalleryImages(images: GalleryImage[]): void {
+    this.setData("gallery", images);
   }
 }
 
@@ -645,4 +663,65 @@ export const incrementPageVisit = async (): Promise<void> => {
     }
   }
   mockDb.incrementVisitorCount();
+};
+
+export const getGalleryImages = async (): Promise<GalleryImage[]> => {
+  if (isSupabaseConfigured) {
+    try {
+      const { data, error } = await supabase
+        .from("gallery")
+        .select("*")
+        .order("createdAt", { ascending: true });
+      if (data && data.length > 0) {
+        return data as GalleryImage[];
+      }
+      if (data && data.length === 0) {
+        const { error: insertError } = await supabase
+          .from("gallery")
+          .insert(DEFAULT_GALLERY_IMAGES);
+        if (!insertError) return DEFAULT_GALLERY_IMAGES;
+      }
+    } catch (e) {
+      console.error("Supabase getGalleryImages error:", e);
+    }
+  }
+  return mockDb.getGalleryImages();
+};
+
+export const saveGalleryImage = async (image: GalleryImage): Promise<void> => {
+  if (isSupabaseConfigured) {
+    try {
+      const { error } = await supabase
+        .from("gallery")
+        .upsert(image);
+      if (!error) return;
+    } catch (e) {
+      console.error("Supabase saveGalleryImage error:", e);
+    }
+  }
+  const images = mockDb.getGalleryImages();
+  const index = images.findIndex(img => img.id === image.id);
+  if (index >= 0) {
+    images[index] = image;
+  } else {
+    images.push(image);
+  }
+  mockDb.saveGalleryImages(images);
+};
+
+export const deleteGalleryImage = async (id: string): Promise<void> => {
+  if (isSupabaseConfigured) {
+    try {
+      const { error } = await supabase
+        .from("gallery")
+        .delete()
+        .eq("id", id);
+      if (!error) return;
+    } catch (e) {
+      console.error("Supabase deleteGalleryImage error:", e);
+    }
+  }
+  const images = mockDb.getGalleryImages();
+  const filtered = images.filter(img => img.id !== id);
+  mockDb.saveGalleryImages(filtered);
 };

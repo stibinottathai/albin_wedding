@@ -1,88 +1,32 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, ChevronLeft, ChevronRight, ZoomIn } from "lucide-react";
 import { useLanguage } from "../context/LanguageContext";
-
-interface GalleryImage {
-  src: string;
-  category: "pre-wedding" | "engagement" | "family" | "memories";
-  alt: string;
-}
-
-const GALLERY_IMAGES: GalleryImage[] = [
-  // Pre-Wedding
-  {
-    src: "https://images.unsplash.com/photo-1511285560929-80b456fea0bc?q=80&w=800",
-    category: "pre-wedding",
-    alt: "Pre-wedding sunset walking",
-  },
-  {
-    src: "https://images.unsplash.com/photo-1522673607200-164d1b6ce486?q=80&w=800",
-    category: "pre-wedding",
-    alt: "Pre-wedding embrace",
-  },
-  {
-    src: "https://images.unsplash.com/photo-1529636798458-92182e65f133?q=80&w=800",
-    category: "pre-wedding",
-    alt: "Romantic forest stroll",
-  },
-  // Engagement
-  {
-    src: "https://images.unsplash.com/photo-1515934751635-c81c6bc9a2d8?q=80&w=800",
-    category: "engagement",
-    alt: "Ring exchange betrothal",
-  },
-  {
-    src: "https://images.unsplash.com/photo-1607190074257-dd4b7af0309f?q=80&w=800",
-    category: "engagement",
-    alt: "Proposal ring view",
-  },
-  {
-    src: "https://images.unsplash.com/photo-1502086223501-7ea6ecd79368?q=80&w=800",
-    category: "engagement",
-    alt: "Happy engaged couple laughing",
-  },
-  // Family
-  {
-    src: "https://images.unsplash.com/photo-1519741497674-611481863552?q=80&w=800",
-    category: "family",
-    alt: "Wedding toast with relatives",
-  },
-  {
-    src: "https://images.unsplash.com/photo-1542038784456-1ea8e935640e?q=80&w=800",
-    category: "family",
-    alt: "Family portraits during reception",
-  },
-  {
-    src: "https://images.unsplash.com/photo-1606800052052-a08af7148866?q=80&w=800",
-    category: "family",
-    alt: "Bridesmaids laughing together",
-  },
-  // Memories
-  {
-    src: "https://images.unsplash.com/photo-1469371670807-013ccf25f16a?q=80&w=800",
-    category: "memories",
-    alt: "Bride and Groom floral aisle",
-  },
-  {
-    src: "https://images.unsplash.com/photo-1519225495810-7517cbd14560?q=80&w=800",
-    category: "memories",
-    alt: "Groom looking at bride church",
-  },
-  {
-    src: "https://images.unsplash.com/photo-1532712938310-34cb3982ef74?q=80&w=800",
-    category: "memories",
-    alt: "Bridal dance first waltz",
-  },
-];
+import { getGalleryImages, GalleryImage } from "../lib/db";
 
 export const WeddingGallery: React.FC = () => {
   const { t } = useLanguage();
+  const [images, setImages] = useState<GalleryImage[]>([]);
+  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"all" | GalleryImage["category"]>("all");
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+
+  useEffect(() => {
+    const loadImages = async () => {
+      try {
+        const data = await getGalleryImages();
+        setImages(data);
+      } catch (err) {
+        console.error("Error loading gallery images:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadImages();
+  }, []);
 
   const categories = [
     { id: "all", label: "All" },
@@ -93,11 +37,11 @@ export const WeddingGallery: React.FC = () => {
   ];
 
   const filteredImages = activeTab === "all"
-    ? GALLERY_IMAGES
-    : GALLERY_IMAGES.filter((img) => img.category === activeTab);
+    ? images
+    : images.filter((img) => img.category === activeTab);
 
   const openLightbox = (src: string) => {
-    const idx = GALLERY_IMAGES.findIndex((img) => img.src === src);
+    const idx = images.findIndex((img) => img.src === src);
     setLightboxIndex(idx >= 0 ? idx : null);
   };
 
@@ -105,17 +49,54 @@ export const WeddingGallery: React.FC = () => {
 
   const showNext = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (lightboxIndex !== null) {
-      setLightboxIndex((prev) => (prev! + 1) % GALLERY_IMAGES.length);
+    if (lightboxIndex !== null && images.length > 0) {
+      setLightboxIndex((prev) => (prev! + 1) % images.length);
     }
   };
 
   const showPrev = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (lightboxIndex !== null) {
-      setLightboxIndex((prev) => (prev! - 1 + GALLERY_IMAGES.length) % GALLERY_IMAGES.length);
+    if (lightboxIndex !== null && images.length > 0) {
+      setLightboxIndex((prev) => (prev! - 1 + images.length) % images.length);
     }
   };
+
+  if (loading) {
+    return (
+      <div className="w-full">
+        {/* Category Tabs Skeleton */}
+        <div className="flex flex-wrap gap-2 justify-center mb-8 px-4">
+          {[1, 2, 3, 4, 5].map((i) => (
+            <div key={i} className="w-24 h-8 bg-slate-200 dark:bg-[#1e332c]/20 animate-pulse rounded-full" />
+          ))}
+        </div>
+        
+        {/* Masonry Columns Skeleton */}
+        <div className="columns-1 sm:columns-2 md:columns-3 gap-4 px-4 space-y-4 max-w-5xl mx-auto">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <div 
+              key={i} 
+              className="w-full bg-slate-200 dark:bg-[#1e332c]/20 animate-pulse rounded-xl break-inside-avoid border border-[#e5dfd1] dark:border-[#223830]"
+              style={{ height: i % 2 === 0 ? "280px" : "380px" }}
+            />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (images.length === 0) {
+    return (
+      <div className="w-full flex flex-col items-center justify-center py-16 px-6 text-center">
+        <div className="bg-white/40 dark:bg-[#1e332c]/10 border border-[#e5dfd1] dark:border-[#223830] rounded-3xl p-8 max-w-md shadow-sm backdrop-blur-sm">
+          <p className="font-serif italic text-xl text-primary mb-2">Beautiful Moments Are Coming</p>
+          <p className="sans text-xs text-muted-foreground leading-relaxed">
+            Our wedding gallery is currently empty. Capturing all beautiful memories, we will upload photos soon! Please check back later.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full">
@@ -127,7 +108,7 @@ export const WeddingGallery: React.FC = () => {
             onClick={() => setActiveTab(tab.id as any)}
             className={`px-4 py-2 rounded-full text-xs uppercase tracking-wider transition-all font-medium duration-300 ${
               activeTab === tab.id
-                ? "bg-primary text-white shadow-md"
+                ? "bg-[#8b755e] text-white shadow-md"
                 : "bg-white/50 dark:bg-[#1e332c]/30 text-muted-foreground hover:bg-white dark:hover:bg-[#1e332c]/50"
             }`}
           >
@@ -137,43 +118,49 @@ export const WeddingGallery: React.FC = () => {
       </div>
 
       {/* Masonry-like Grid */}
-      <motion.div
-        layout
-        className="columns-1 sm:columns-2 md:columns-3 gap-4 px-4 space-y-4 max-w-5xl mx-auto"
-      >
-        <AnimatePresence mode="popLayout">
-          {filteredImages.map((img) => (
-            <motion.div
-              key={img.src}
-              layout
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              transition={{ duration: 0.4 }}
-              className="relative break-inside-avoid rounded-xl overflow-hidden shadow-md group cursor-pointer border border-[#e5dfd1] dark:border-[#223830]"
-              onClick={() => openLightbox(img.src)}
-            >
-              <img
-                src={img.src}
-                alt={img.alt}
-                loading="lazy"
-                className="w-full h-auto object-cover transition-transform duration-500 group-hover:scale-105"
-              />
-              
-              {/* Overlay on Hover */}
-              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-                <div className="bg-white/20 backdrop-blur-md p-3 rounded-full border border-white/30 text-white">
-                  <ZoomIn className="h-5 w-5" />
+      {filteredImages.length === 0 ? (
+        <div className="text-center py-16 text-muted-foreground/60 italic text-xs">
+          No photos in this category yet.
+        </div>
+      ) : (
+        <motion.div
+          layout
+          className="columns-1 sm:columns-2 md:columns-3 gap-4 px-4 space-y-4 max-w-5xl mx-auto"
+        >
+          <AnimatePresence mode="popLayout">
+            {filteredImages.map((img) => (
+              <motion.div
+                key={img.id || img.src}
+                layout
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                transition={{ duration: 0.4 }}
+                className="relative break-inside-avoid rounded-xl overflow-hidden shadow-md group cursor-pointer border border-[#e5dfd1] dark:border-[#223830]"
+                onClick={() => openLightbox(img.src)}
+              >
+                <img
+                  src={img.src}
+                  alt={img.alt || "Wedding moment"}
+                  loading="lazy"
+                  className="w-full h-auto object-cover transition-transform duration-500 group-hover:scale-105"
+                />
+                
+                {/* Overlay on Hover */}
+                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                  <div className="bg-white/20 backdrop-blur-md p-3 rounded-full border border-white/30 text-white">
+                    <ZoomIn className="h-5 w-5" />
+                  </div>
                 </div>
-              </div>
-            </motion.div>
-          ))}
-        </AnimatePresence>
-      </motion.div>
+              </motion.div>
+            ))}
+          </AnimatePresence>
+        </motion.div>
+      )}
 
       {/* Lightbox Modal */}
       <AnimatePresence>
-        {lightboxIndex !== null && (
+        {lightboxIndex !== null && images[lightboxIndex] && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -212,12 +199,12 @@ export const WeddingGallery: React.FC = () => {
               onClick={(e) => e.stopPropagation()}
             >
               <img
-                src={GALLERY_IMAGES[lightboxIndex].src}
-                alt={GALLERY_IMAGES[lightboxIndex].alt}
+                src={images[lightboxIndex].src}
+                alt={images[lightboxIndex].alt || "Wedding moment"}
                 className="max-w-full max-h-[80vh] object-contain rounded-lg shadow-2xl"
               />
               <p className="text-white/60 text-xs mt-3 uppercase tracking-widest">
-                {GALLERY_IMAGES[lightboxIndex].alt}
+                {images[lightboxIndex].alt || "Wedding moment"}
               </p>
             </motion.div>
           </motion.div>
@@ -226,4 +213,5 @@ export const WeddingGallery: React.FC = () => {
     </div>
   );
 };
+
 export default WeddingGallery;

@@ -4,13 +4,15 @@ import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDown, Heart } from "lucide-react";
 import { useLanguage } from "../context/LanguageContext";
+import { WeddingInfo } from "../lib/db";
 
 interface EnvelopeProps {
   guestName?: string;
   onOpened: () => void;
+  weddingInfo: WeddingInfo;
 }
 
-export const Envelope: React.FC<EnvelopeProps> = ({ guestName, onOpened }) => {
+export const Envelope: React.FC<EnvelopeProps> = ({ guestName, onOpened, weddingInfo }) => {
   const { t } = useLanguage();
   const [isOpening, setIsOpening] = useState(false);
   const [isFlapOpen, setIsFlapOpen] = useState(false);
@@ -47,7 +49,7 @@ export const Envelope: React.FC<EnvelopeProps> = ({ guestName, onOpened }) => {
             <p className="sans text-[9px] sm:text-[10px] uppercase tracking-[0.4em] text-[var(--sage-light)] font-semibold mb-2">
               {t("youAreInvited")}
             </p>
-            <h2 className="serif italic text-2xl sm:text-3xl md:text-4xl text-[var(--cream)] font-light">Albin & Stella</h2>
+            <h2 className="serif italic text-2xl sm:text-3xl md:text-4xl text-[var(--cream)] font-light">{weddingInfo.groomName} & {weddingInfo.brideName}</h2>
           </motion.div>
         )}
       </AnimatePresence>
@@ -127,7 +129,7 @@ export const Envelope: React.FC<EnvelopeProps> = ({ guestName, onOpened }) => {
                 </div>
 
                 <h2 className="serif italic font-light text-2xl sm:text-3xl md:text-4xl text-[var(--charcoal)] text-center leading-tight">
-                  Albin <span className="text-lg sm:text-xl text-[var(--muted-text)]">&amp;</span> Stella
+                  {weddingInfo.groomName} <span className="text-lg sm:text-xl text-[var(--muted-text)]">&amp;</span> {weddingInfo.brideName}
                 </h2>
 
                 <div className="flex items-center gap-1.5 sm:gap-2 opacity-60 mt-0.5">
@@ -195,7 +197,7 @@ export const Envelope: React.FC<EnvelopeProps> = ({ guestName, onOpened }) => {
                     <div className="absolute inset-[5px] rounded-full border border-[var(--sage-light)]/45" />
                     {/* Monogram */}
                     <span className="serif italic text-white text-lg font-light shadow-sm">
-                      A&S
+                      {weddingInfo.groomName[0]}&{weddingInfo.brideName[0]}
                     </span>
                   </div>
                 </motion.button>

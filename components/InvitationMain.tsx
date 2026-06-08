@@ -27,7 +27,8 @@ interface ParallaxHeroProps {
   weddingDate: string;
   locationName: string;
   handleShare: (platform: "whatsapp" | "telegram" | "email") => void;
-  t: (key: string) => string;
+  t: any;
+  weddingInfo?: WeddingInfo;
 }
 
 function ParallaxHero({
@@ -38,7 +39,8 @@ function ParallaxHero({
   weddingDate,
   locationName,
   handleShare,
-  t
+  t,
+  weddingInfo
 }: ParallaxHeroProps) {
   const ref = useRef<HTMLElement>(null);
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end start"] });
@@ -50,7 +52,7 @@ function ParallaxHero({
       <motion.div style={{ y: bgY }} className="absolute inset-0 scale-[1.12] z-0">
         <img
           src="https://images.unsplash.com/photo-1519225424757-3f303f8a483a?q=80&w=2400"
-          alt="Albin & Stella"
+          alt={`${weddingInfo?.groomName} & ${weddingInfo?.brideName}`}
           className="w-full h-full object-cover"
         />
         {/* Soft overlay to ensure readability */}
@@ -82,7 +84,7 @@ function ParallaxHero({
           transition={{ duration: 1.1, ease: [0.25, 0.46, 0.45, 0.94] }}
           className="font-display-lg text-5xl md:text-7xl text-[var(--primary)] mb-4 drop-shadow-sm serif font-medium"
         >
-          Albin &amp; Stella
+          {weddingInfo?.groomName} &amp; {weddingInfo?.brideName}
         </motion.h1>
 
         <motion.p
@@ -154,8 +156,12 @@ function ParallaxHero({
                   <LiveCountdown targetDate={weddingDate} />
                   
                   <div className="border-t border-[var(--border-warm)]/40 mt-6 pt-6">
-                    <p className="serif italic text-2xl text-[var(--charcoal)] font-light">Saturday, November 28, 2026</p>
-                    <p className="sans text-[10px] text-[var(--primary)] tracking-widest mt-1.5 uppercase font-bold">10:30 AM · Holy Matrimony</p>
+                    <p className="serif italic text-2xl text-[var(--charcoal)] font-light">
+                      {new Date(weddingDate).toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
+                    </p>
+                    <p className="sans text-[10px] text-[var(--primary)] tracking-widest mt-1.5 uppercase font-bold">
+                      {new Date(weddingDate).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })} · Holy Matrimony
+                    </p>
                     <p className="sans text-xs text-[var(--muted-text)] mt-1">{locationName}</p>
                   </div>
                 </div>
@@ -327,11 +333,11 @@ export const InvitationMain: React.FC<InvitationMainProps> = ({ guest }) => {
 
   const handleShare = (platform: "whatsapp" | "telegram" | "email") => {
     const url = typeof window !== "undefined" ? window.location.href : "";
-    const text = `You're invited to the wedding of Albin & Stella! ${url}`;
+    const text = `You're invited to the wedding of ${weddingInfo?.groomName} & ${weddingInfo?.brideName}! ${url}`;
     const enc = encodeURIComponent(text);
     if (platform === "whatsapp") window.open(`https://api.whatsapp.com/send?text=${enc}`, "_blank");
     else if (platform === "telegram") window.open(`https://t.me/share/url?url=${encodeURIComponent(url)}&text=${enc}`, "_blank");
-    else window.open(`mailto:?subject=Wedding Invitation — Albin %26 Stella&body=${enc}`, "_self");
+    else window.open(`mailto:?subject=Wedding Invitation — ${weddingInfo?.groomName} %26 ${weddingInfo?.brideName}&body=${enc}`, "_self");
   };
 
   const faqItems = [
@@ -369,7 +375,7 @@ export const InvitationMain: React.FC<InvitationMainProps> = ({ guest }) => {
       {/* Envelope overlay */}
       <AnimatePresence mode="wait">
         {!isEnvelopeOpened && (
-          <Envelope guestName={guest?.greeting} onOpened={handleEnvelopeOpened} />
+          <Envelope guestName={guest?.greeting} onOpened={handleEnvelopeOpened} weddingInfo={weddingInfo} />
         )}
       </AnimatePresence>
 
@@ -381,7 +387,7 @@ export const InvitationMain: React.FC<InvitationMainProps> = ({ guest }) => {
             <div className="flex justify-between items-center max-w-[1200px] mx-auto px-6 md:px-12 py-3 flex-nowrap gap-4">
               {/* Brand Logo */}
               <a className="font-display-lg text-2xl md:text-3xl tracking-tighter text-[var(--primary)] hover:opacity-85 transition-opacity duration-200 serif font-medium whitespace-nowrap shrink-0" href="#home">
-                ALBIN &amp; STELLA
+                {weddingInfo?.groomName?.toUpperCase()} &amp; {weddingInfo?.brideName?.toUpperCase()}
               </a>
 
               {/* Navigation Links */}
@@ -417,10 +423,7 @@ export const InvitationMain: React.FC<InvitationMainProps> = ({ guest }) => {
                   ))}
                 </div>
                 
-                {/* Desktop RSVP Button */}
-                <a className="hidden md:inline-flex items-center justify-center px-5 py-2 bg-[var(--primary)] text-white font-semibold text-xs uppercase tracking-widest rounded hover:bg-[var(--primary-container)] hover:text-[var(--charcoal)] transition-all duration-300 shadow-sm whitespace-nowrap shrink-0" href="#rsvp">
-                  RSVP
-                </a>
+
 
                 {/* Hamburger Toggle (Mobile Only) */}
                 <button
@@ -462,14 +465,7 @@ export const InvitationMain: React.FC<InvitationMainProps> = ({ guest }) => {
                       </a>
                     ))}
                     
-                    {/* Mobile Menu RSVP Button */}
-                    <a
-                      href="#rsvp"
-                      onClick={() => setIsMenuOpen(false)}
-                      className="flex items-center justify-center py-3.5 mt-2 bg-[var(--primary)] text-white font-semibold text-xs uppercase tracking-widest rounded hover:bg-[var(--primary-container)] hover:text-[var(--charcoal)] transition-all duration-300 shadow-sm"
-                    >
-                      RSVP
-                    </a>
+
                   </div>
                 </motion.div>
               )}
@@ -486,6 +482,7 @@ export const InvitationMain: React.FC<InvitationMainProps> = ({ guest }) => {
             locationName={weddingInfo.locationName}
             handleShare={handleShare}
             t={t}
+            weddingInfo={weddingInfo}
           />
 
           {/* ── 4. Our Story Section (Timeline with Grayscale Hover Effects) ── */}
@@ -712,8 +709,9 @@ export const InvitationMain: React.FC<InvitationMainProps> = ({ guest }) => {
           </section>
 
           {/* ── 9. RSVP Section (Stitch Style Adaptations) ── */}
-          <section className="py-24 px-6 bg-[var(--surface-container-low)]" id="rsvp">
-            <div className="max-w-[700px] mx-auto bg-[var(--cream)] rounded-3xl p-8 md:p-14 border border-[var(--border-warm)]/20 shadow-[0_15px_50px_-15px_rgba(115,92,0,0.06)] relative overflow-hidden">
+          {guest && (
+            <section className="py-24 px-6 bg-[var(--surface-container-low)]" id="rsvp">
+              <div className="max-w-[700px] mx-auto bg-[var(--cream)] rounded-3xl p-8 md:p-14 border border-[var(--border-warm)]/20 shadow-[0_15px_50px_-15px_rgba(115,92,0,0.06)] relative overflow-hidden">
               {/* Watercolor decorative blurs */}
               <div className="absolute -top-32 -right-32 w-80 h-80 bg-[var(--rose-light)]/20 rounded-full blur-[80px] pointer-events-none" />
               <div className="absolute -bottom-32 -left-32 w-80 h-80 bg-[var(--primary-container)]/10 rounded-full blur-[80px] pointer-events-none" />
@@ -747,19 +745,6 @@ export const InvitationMain: React.FC<InvitationMainProps> = ({ guest }) => {
                       </div>
                     )}
 
-                    {/* Name Field (for general public/fallback or just displays if guest not loaded) */}
-                    {!guest && (
-                      <div>
-                        <label className="block sans text-[10px] uppercase tracking-widest text-[var(--muted-text)] mb-2 font-bold" htmlFor="fullName">Full Name</label>
-                        <input
-                          className="w-full bg-transparent border-0 border-b border-[var(--border-warm)]/60 focus:ring-0 focus:border-b-2 focus:border-[var(--primary)] text-xs py-2.5 px-0 transition-colors placeholder:text-[var(--muted-text)]/40"
-                          id="fullName"
-                          type="text"
-                          required
-                          placeholder="Please enter your name"
-                        />
-                      </div>
-                    )}
 
                     {/* Attendance Radio Buttons (Stitch Adaptations) */}
                     <div>
@@ -864,6 +849,7 @@ export const InvitationMain: React.FC<InvitationMainProps> = ({ guest }) => {
               </div>
             </div>
           </section>
+          )}
 
           {/* ── 10. FAQ Section ── */}
           <section className="py-24 px-6 bg-[var(--cream)] border-t border-[var(--border-warm)]/20">
@@ -903,11 +889,13 @@ export const InvitationMain: React.FC<InvitationMainProps> = ({ guest }) => {
 
           {/* ── 11. Footer Component ── */}
           <footer className="bg-[var(--charcoal)] text-[var(--cream)] py-16 px-6 text-center relative border-t border-[var(--border-warm)]/10">
-            <h3 className="serif italic text-3xl mb-4 text-[var(--sage-light)]">Albin &amp; Stella</h3>
+            <h3 className="serif italic text-3xl mb-4 text-[var(--sage-light)]">{weddingInfo.groomName} &amp; {weddingInfo.brideName}</h3>
             <div className="w-16 h-px bg-[var(--sage-light)]/30 mx-auto my-6" />
-            <p className="sans text-[10px] text-white/50 tracking-[0.2em] uppercase font-semibold">November 28, 2026 · Kochi, Kerala</p>
+            <p className="sans text-[10px] text-white/50 tracking-[0.2em] uppercase font-semibold">
+              {new Date(weddingInfo.weddingDate).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })} · {weddingInfo.locationName}
+            </p>
             <p className="sans text-[9px] text-white/30 mt-4">
-              © 2026 Albin &amp; Stella. Forever &amp; Always. ·{" "}
+              © {new Date().getFullYear()} {weddingInfo.groomName} &amp; {weddingInfo.brideName}. Forever &amp; Always. ·{" "}
               <a href="/admin" className="hover:text-[var(--sage-light)] transition-colors underline">Admin Login</a>
             </p>
           </footer>
