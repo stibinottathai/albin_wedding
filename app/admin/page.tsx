@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { 
   Users, 
   Settings as SettingsIcon, 
@@ -53,6 +54,7 @@ interface Wish {
 }
 
 export default function AdminDashboard() {
+  const router = useRouter();
   const storyFormRef = React.useRef<HTMLDivElement>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [email, setEmail] = useState("");
@@ -166,6 +168,7 @@ export default function AdminDashboard() {
     sessionStorage.removeItem("admin_authed");
     setIsAuthenticated(false);
     setUser(null);
+    router.push("/");
   };
 
   useEffect(() => {

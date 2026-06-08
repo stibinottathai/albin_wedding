@@ -212,7 +212,7 @@ interface InvitationMainProps {
 export const InvitationMain: React.FC<InvitationMainProps> = ({ guest }) => {
   const { t, language, setLanguage } = useLanguage();
 
-  const [isEnvelopeOpened, setIsEnvelopeOpened] = useState(false);
+  const [isEnvelopeOpened, setIsEnvelopeOpened] = useState(!guest);
   const [weddingInfo, setWeddingInfo] = useState<WeddingInfo | null>(null);
   const [events, setEvents] = useState<WeddingEvent[]>([]);
   const [stories, setStories] = useState<StoryMilestone[]>([]);
