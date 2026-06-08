@@ -440,7 +440,7 @@ export const submitWish = async (guestName: string, message: string, emoji: stri
     id: Math.random().toString(36).substring(2, 11),
     guestName,
     message,
-    approved: false,
+    approved: true,
     timestamp: new Date().toISOString(),
     emoji
   };

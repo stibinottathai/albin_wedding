@@ -14,7 +14,9 @@ import {
   Lock,
   ArrowRight,
   Globe,
-  ExternalLink
+  ExternalLink,
+  ClipboardList,
+  Filter
 } from "lucide-react";
 import { 
   getWeddingInfo, 
@@ -22,16 +24,21 @@ import {
   getGuests, 
   createGuest, 
   deleteGuest, 
-  getWishes, 
-  updateWishStatus, 
-  deleteWish, 
   getAnalytics, 
   WeddingInfo, 
   Guest, 
-  Wish, 
   Analytics 
 } from "../../lib/db";
 import { supabase, isSupabaseConfigured } from "../../lib/supabase";
+
+interface Wish {
+  id: string;
+  guestName: string;
+  message: string;
+  approved: boolean;
+  timestamp: string;
+  emoji?: string;
+}
 
 export default function AdminDashboard() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -39,7 +46,8 @@ export default function AdminDashboard() {
   const [password, setPassword] = useState("");
   const [authError, setAuthError] = useState("");
 
-  const [activeTab, setActiveTab] = useState<"analytics" | "guests" | "wishes" | "settings">("analytics");
+  const [activeTab, setActiveTab] = useState<"analytics" | "rsvp" | "guests" | "wishes" | "settings">("analytics");
+  const [rsvpFilter, setRsvpFilter] = useState<"all" | "accepted" | "declined" | "pending">("all");
   const [weddingInfo, setWeddingInfo] = useState<WeddingInfo | null>(null);
   const [guests, setGuests] = useState<Guest[]>([]);
   const [wishes, setWishes] = useState<Wish[]>([]);
@@ -169,10 +177,13 @@ export default function AdminDashboard() {
     try {
       const info = await getWeddingInfo();
       setWeddingInfo(info);
-      const guestList = await getGuests();
-      setGuests(guestList);
-      const wishesList = await getWishes(true); // Load approved + unapproved wishes
-      setWishes(wishesList);
+      // Load guests via API route to bypass RLS
+      const guestRes = await fetch("/api/rsvp");
+      const guestList = guestRes.ok ? await guestRes.json() : await getGuests();
+      setGuests(Array.isArray(guestList) ? guestList : []);
+      const wishesRes = await fetch("/api/wishes?all=true");
+      const wishesList = wishesRes.ok ? await wishesRes.json() : [];
+      setWishes(Array.isArray(wishesList) ? wishesList : []);
       const stats = await getAnalytics();
       setAnalytics(stats);
     } catch (err) {
@@ -233,7 +244,11 @@ export default function AdminDashboard() {
   // Moderation: Approve/Reject Wish
   const handleToggleWish = async (id: string, approved: boolean) => {
     try {
-      await updateWishStatus(id, approved);
+      await fetch(`/api/wishes/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ approved }),
+      });
       loadAdminData();
     } catch (err) {
       console.error(err);
@@ -244,7 +259,7 @@ export default function AdminDashboard() {
   const handleDeleteWish = async (id: string) => {
     if (confirm("Delete this message?")) {
       try {
-        await deleteWish(id);
+        await fetch(`/api/wishes/${id}`, { method: "DELETE" });
         loadAdminData();
       } catch (err) {
         console.error(err);
@@ -383,6 +398,15 @@ export default function AdminDashboard() {
               Guest List
             </button>
             <button
+              onClick={() => setActiveTab("rsvp")}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-xs uppercase tracking-wider font-semibold transition-all ${
+                activeTab === "rsvp" ? "bg-slate-800 text-white border-l-4 border-[#d4af37]" : "hover:bg-slate-800/50 hover:text-white"
+              }`}
+            >
+              <ClipboardList className="h-4 w-4 text-[#d4af37]" />
+              RSVP Responses
+            </button>
+            <button
               onClick={() => setActiveTab("wishes")}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-xs uppercase tracking-wider font-semibold transition-all ${
                 activeTab === "wishes" ? "bg-slate-800 text-white border-l-4 border-[#d4af37]" : "hover:bg-slate-800/50 hover:text-white"
@@ -490,6 +514,124 @@ export default function AdminDashboard() {
                     <div className="bg-amber-500 h-full rounded-full" style={{ width: `${guests.length ? ((guests.length - (analytics.rsvpAccepted + analytics.rsvpDeclined)) / guests.length) * 100 : 0}%` }} />
                   </div>
                 </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Tab RSVP: RSVP Responses */}
+        {activeTab === "rsvp" && (
+          <div className="space-y-6 animate-fadeIn">
+            {/* Summary Cards */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex flex-col gap-1">
+                <span className="text-[10px] uppercase tracking-wider font-bold text-slate-400">Total Invited</span>
+                <span className="text-3xl font-semibold font-serif text-slate-900">{guests.length}</span>
+              </div>
+              <div className="bg-white p-5 rounded-2xl shadow-sm border border-emerald-100 flex flex-col gap-1">
+                <span className="text-[10px] uppercase tracking-wider font-bold text-emerald-500">Accepted</span>
+                <span className="text-3xl font-semibold font-serif text-emerald-600">
+                  {guests.filter(g => g.rsvpStatus === "accepted").length}
+                </span>
+                <span className="text-xs text-slate-400">
+                  {guests.filter(g => g.rsvpStatus === "accepted").reduce((s, g) => s + (g.rsvpAttendees || 0), 0)} guests attending
+                </span>
+              </div>
+              <div className="bg-white p-5 rounded-2xl shadow-sm border border-rose-100 flex flex-col gap-1">
+                <span className="text-[10px] uppercase tracking-wider font-bold text-rose-400">Declined</span>
+                <span className="text-3xl font-semibold font-serif text-rose-500">
+                  {guests.filter(g => g.rsvpStatus === "declined").length}
+                </span>
+              </div>
+              <div className="bg-white p-5 rounded-2xl shadow-sm border border-amber-100 flex flex-col gap-1">
+                <span className="text-[10px] uppercase tracking-wider font-bold text-amber-500">Awaiting</span>
+                <span className="text-3xl font-semibold font-serif text-amber-600">
+                  {guests.filter(g => g.rsvpStatus === "pending").length}
+                </span>
+              </div>
+            </div>
+
+            {/* Filter Buttons */}
+            <div className="flex flex-wrap gap-2">
+              {(["all", "accepted", "declined", "pending"] as const).map((f) => (
+                <button
+                  key={f}
+                  onClick={() => setRsvpFilter(f)}
+                  className={`px-4 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wider border transition-all ${
+                    rsvpFilter === f
+                      ? "bg-slate-900 text-white border-slate-900"
+                      : "bg-white text-slate-500 border-slate-200 hover:border-slate-400"
+                  }`}
+                >
+                  {f === "all" ? "All Responses" : f}
+                </button>
+              ))}
+            </div>
+
+            {/* RSVP Table */}
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse text-left text-sm text-slate-500">
+                  <thead className="bg-slate-50 text-xs uppercase font-bold text-slate-400 border-b border-slate-200">
+                    <tr>
+                      <th className="px-6 py-4">Guest Name</th>
+                      <th className="px-6 py-4">Status</th>
+                      <th className="px-6 py-4">Attending</th>
+                      <th className="px-6 py-4">Allowed</th>
+                      <th className="px-6 py-4">Message / Meal</th>
+                      <th className="px-6 py-4">Responded</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {guests
+                      .filter(g => rsvpFilter === "all" || g.rsvpStatus === rsvpFilter)
+                      .map((g) => (
+                        <tr key={g.id} className="hover:bg-slate-50 transition-colors">
+                          <td className="px-6 py-4">
+                            <div className="font-semibold text-slate-900">{g.name}</div>
+                            <div className="text-[11px] text-slate-400 italic">{g.greeting}</div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                              g.rsvpStatus === "accepted"
+                                ? "bg-emerald-100 text-emerald-700"
+                                : g.rsvpStatus === "declined"
+                                ? "bg-rose-100 text-rose-700"
+                                : "bg-amber-100 text-amber-700"
+                            }`}>
+                              {g.rsvpStatus === "accepted" && <Check className="h-3 w-3" />}
+                              {g.rsvpStatus === "declined" && <X className="h-3 w-3" />}
+                              {g.rsvpStatus}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 font-semibold text-slate-900">
+                            {g.rsvpStatus === "accepted" ? g.rsvpAttendees : "—"}
+                          </td>
+                          <td className="px-6 py-4 text-slate-500">{g.allowedAttendees}</td>
+                          <td className="px-6 py-4 max-w-xs">
+                            <span className="text-slate-600 italic text-xs line-clamp-2">
+                              {g.rsvpMessage || <span className="text-slate-300">No message</span>}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-xs text-slate-400 whitespace-nowrap">
+                            {g.updatedAt
+                              ? new Date(g.updatedAt).toLocaleDateString("en-GB", {
+                                  day: "2-digit", month: "short", year: "numeric",
+                                  hour: "2-digit", minute: "2-digit",
+                                })
+                              : "—"}
+                          </td>
+                        </tr>
+                      ))}
+                    {guests.filter(g => rsvpFilter === "all" || g.rsvpStatus === rsvpFilter).length === 0 && (
+                      <tr>
+                        <td colSpan={6} className="px-6 py-12 text-center text-slate-400 italic">
+                          No {rsvpFilter === "all" ? "" : rsvpFilter} responses yet.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>
@@ -629,7 +771,6 @@ export default function AdminDashboard() {
                       <div className="flex items-center gap-2 mb-1.5">
                         <span className="font-serif font-bold text-slate-900">{w.guestName}</span>
                         <span className="text-xs text-slate-400">• {new Date(w.timestamp).toLocaleDateString()}</span>
-                        <span className="text-sm select-none">{w.emoji}</span>
                       </div>
                       <p className="text-slate-600 italic">"{w.message}"</p>
                     </div>

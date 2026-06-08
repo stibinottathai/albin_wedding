@@ -285,13 +285,24 @@ export const InvitationMain: React.FC<InvitationMainProps> = ({ guest }) => {
     e.preventDefault();
     setIsRsvpSubmitting(true);
     try {
-      // Append meal choice to message elegantly to maintain database compatibility
       const combinedMessage = rsvpMessage
         ? `${rsvpMessage}${selectedMeal ? ` (Meal Choice: ${selectedMeal})` : ""}`
         : selectedMeal ? `(Meal Choice: ${selectedMeal})` : "";
 
       if (guest?.id) {
-        await updateRSVP(guest.id, rsvpStatus, rsvpAttendees, combinedMessage);
+        const res = await fetch(`/api/rsvp/${guest.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            rsvpStatus,
+            rsvpAttendees,
+            rsvpMessage: combinedMessage,
+          }),
+        });
+        if (!res.ok) {
+          const data = await res.json();
+          console.error("RSVP API error:", data.error);
+        }
       }
       setRsvpSuccess(true);
     } catch (err) {
