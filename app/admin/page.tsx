@@ -374,8 +374,9 @@ export default function AdminDashboard() {
       const guestList = guestRes.ok ? await guestRes.json() : await getGuests();
       setGuests(Array.isArray(guestList) ? guestList : []);
       const wishesRes = await fetch("/api/wishes?all=true");
-      const wishesList = wishesRes.ok ? await wishesRes.json() : [];
-      setWishes(Array.isArray(wishesList) ? wishesList : []);
+      const wishesResult = wishesRes.ok ? await wishesRes.json() : null;
+      const wishesList = wishesResult && Array.isArray(wishesResult.data) ? wishesResult.data : [];
+      setWishes(wishesList);
       const stats = await getAnalytics();
       setAnalytics(stats);
       const galleryList = await getGalleryImages();
