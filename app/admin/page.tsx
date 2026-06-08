@@ -1500,7 +1500,7 @@ export default function AdminDashboard() {
               </button>
             </div>
 
-            <nav className="space-y-1">
+            <nav className="space-y-2">
               {[
                 { id: "analytics" as const, icon: <BarChart3 className="h-4 w-4 text-[#d4af37]" />, label: "Analytics" },
                 { id: "guests" as const, icon: <Users className="h-4 w-4 text-[#d4af37]" />, label: "Guest List" },
@@ -3271,6 +3271,7 @@ export default function AdminDashboard() {
                       value={weddingInfo.googleMapEmbedUrl || ""}
                       onChange={(e) => handleSettingChange("googleMapEmbedUrl", e.target.value)}
                       className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm"
+                      placeholder="Paste Google Maps embed code, embed URL, or any Google Maps link"
                     />
                   </div>
                   <div>

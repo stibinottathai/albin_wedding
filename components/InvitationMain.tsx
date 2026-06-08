@@ -402,36 +402,49 @@ export const InvitationMain: React.FC<InvitationMainProps> = ({ guest, initialWe
           <nav className="fixed top-0 w-full z-50 bg-[var(--background)]/85 backdrop-blur-md border-b border-[var(--border-warm)]/30 shadow-sm transition-all duration-300 pointer-events-auto">
             <div className="flex justify-between items-center max-w-[1200px] mx-auto px-6 md:px-12 py-3 flex-nowrap gap-4">
               {/* Brand Logo */}
-              <a className="font-display-lg text-2xl md:text-3xl tracking-tighter text-[var(--primary)] hover:opacity-85 transition-opacity duration-200 serif font-medium whitespace-nowrap shrink-0" href="#home">
-                {weddingInfo?.groomName?.toUpperCase()} &amp; {weddingInfo?.brideName?.toUpperCase()}
+              <a className="flex items-center gap-2 text-[var(--primary)] hover:opacity-85 transition-opacity duration-200 shrink-0" href="#home">
+                <motion.div
+                  animate={{ scale: [1, 1.25, 1, 1.15, 1] }}
+                  transition={{ duration: 1.5, repeat: Infinity, repeatDelay: 1 }}
+                >
+                  <Heart className="w-5 h-5 fill-[var(--primary)] text-[var(--primary)]" />
+                </motion.div>
+                <motion.span
+                  animate={{ opacity: [0.7, 1, 0.7] }}
+                  transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                  className="font-display-lg text-lg md:text-xl tracking-tighter serif font-medium"
+                >Love</motion.span>
+                <motion.div
+                  animate={{ scale: [1, 1.25, 1, 1.15, 1] }}
+                  transition={{ duration: 1.5, repeat: Infinity, repeatDelay: 1, delay: 0.2 }}
+                >
+                  <Heart className="w-5 h-5 fill-[var(--primary)] text-[var(--primary)]" />
+                </motion.div>
               </a>
 
               {/* Navigation Links */}
-              <div className="hidden xl:flex items-center gap-3 xl:gap-6 flex-nowrap shrink-0">
-                <a className={`font-label-md text-xs uppercase tracking-widest transition-all duration-300 whitespace-nowrap ${activeSection === "home" ? "text-[var(--primary)] font-bold border-b border-[var(--primary)] pb-1" : "text-[var(--muted-text)] hover:text-[var(--primary)]"}`} href="#home">
+              <div className="hidden xl:flex items-center gap-4 xl:gap-8 flex-nowrap shrink-0">
+                <a className={`font-label-md text-[11px] uppercase tracking-wider transition-all duration-300 whitespace-nowrap ${activeSection === "home" ? "text-[var(--primary)] font-bold border-b border-[var(--primary)] pb-1" : "text-[var(--muted-text)] hover:text-[var(--primary)]"}`} href="#home">
                   {t("saveTheDate")}
                 </a>
-                <a className={`font-label-md text-xs uppercase tracking-widest transition-all duration-300 whitespace-nowrap ${activeSection === "our-story" ? "text-[var(--primary)] font-bold border-b border-[var(--primary)] pb-1" : "text-[var(--muted-text)] hover:text-[var(--primary)]"}`} href="#our-story">
+                <a className={`font-label-md text-[11px] uppercase tracking-wider transition-all duration-300 whitespace-nowrap ${activeSection === "our-story" ? "text-[var(--primary)] font-bold border-b border-[var(--primary)] pb-1" : "text-[var(--muted-text)] hover:text-[var(--primary)]"}`} href="#our-story">
                   {t("ourStory")}
                 </a>
-                <a className={`font-label-md text-xs uppercase tracking-widest transition-all duration-300 whitespace-nowrap ${activeSection === "events" ? "text-[var(--primary)] font-bold border-b border-[var(--primary)] pb-1" : "text-[var(--muted-text)] hover:text-[var(--primary)]"}`} href="#events">
+                <a className={`font-label-md text-[11px] uppercase tracking-wider transition-all duration-300 whitespace-nowrap ${activeSection === "events" ? "text-[var(--primary)] font-bold border-b border-[var(--primary)] pb-1" : "text-[var(--muted-text)] hover:text-[var(--primary)]"}`} href="#events">
                   {t("schedule")}
                 </a>
-                <a className={`font-label-md text-xs uppercase tracking-widest transition-all duration-300 whitespace-nowrap ${activeSection === "gallery" ? "text-[var(--primary)] font-bold border-b border-[var(--primary)] pb-1" : "text-[var(--muted-text)] hover:text-[var(--primary)]"}`} href="#gallery">
+                <a className={`font-label-md text-[11px] uppercase tracking-wider transition-all duration-300 whitespace-nowrap ${activeSection === "gallery" ? "text-[var(--primary)] font-bold border-b border-[var(--primary)] pb-1" : "text-[var(--muted-text)] hover:text-[var(--primary)]"}`} href="#gallery">
                   {t("gallery")}
                 </a>
-                <a className={`font-label-md text-xs uppercase tracking-widest transition-all duration-300 whitespace-nowrap ${activeSection === "well-wishes" ? "text-[var(--primary)] font-bold border-b border-[var(--primary)] pb-1" : "text-[var(--muted-text)] hover:text-[var(--primary)]"}`} href="#well-wishes">
+                <a className={`font-label-md text-[11px] uppercase tracking-wider transition-all duration-300 whitespace-nowrap ${activeSection === "well-wishes" ? "text-[var(--primary)] font-bold border-b border-[var(--primary)] pb-1" : "text-[var(--muted-text)] hover:text-[var(--primary)]"}`} href="#well-wishes">
                   {t("wishes")}
                 </a>
-                <a className={`font-label-md text-xs uppercase tracking-widest transition-all duration-300 whitespace-nowrap ${activeSection === "family" ? "text-[var(--primary)] font-bold border-b border-[var(--primary)] pb-1" : "text-[var(--muted-text)] hover:text-[var(--primary)]"}`} href="#family">
+                <a className={`font-label-md text-[11px] uppercase tracking-wider transition-all duration-300 whitespace-nowrap ${activeSection === "family" ? "text-[var(--primary)] font-bold border-b border-[var(--primary)] pb-1" : "text-[var(--muted-text)] hover:text-[var(--primary)]"}`} href="#family">
                   {t("family")}
-                </a>
-                <a className="font-label-md text-xs uppercase tracking-widest transition-all duration-300 whitespace-nowrap text-[var(--muted-text)] hover:text-[var(--primary)]" href="/admin">
-                  {t("login")}
                 </a>
               </div>
 
-              {/* Actions: Bilingual Toggle, RSVP & Hamburger */}
+              {/* Actions: Bilingual Toggle & Hamburger */}
               <div className="flex items-center gap-4 flex-nowrap shrink-0">
                 <div className="flex gap-1 bg-[var(--parchment)]/60 rounded-full p-1 border border-[var(--border-warm)]/30 shrink-0">
                   {["en", "ml"].map((lang) => (
@@ -441,8 +454,6 @@ export const InvitationMain: React.FC<InvitationMainProps> = ({ guest, initialWe
                     </button>
                   ))}
                 </div>
-                
-
 
                 {/* Hamburger Toggle (Mobile + Tablet) */}
                 <button
@@ -465,25 +476,21 @@ export const InvitationMain: React.FC<InvitationMainProps> = ({ guest, initialWe
                   transition={{ duration: 0.3, ease: "easeInOut" }}
                   className="xl:hidden w-full bg-[var(--background)]/95 backdrop-blur-lg border-t border-[var(--border-warm)]/30 shadow-lg overflow-hidden"
                 >
-                  <div className="flex flex-col px-6 py-6 gap-4">
+                  <div className="flex flex-col px-6 py-6 gap-6">
                     {[
                       { href: "#home", label: t("saveTheDate"), section: "home" },
                       { href: "#our-story", label: t("ourStory"), section: "our-story" },
                       { href: "#events", label: t("schedule"), section: "events" },
                       { href: "#gallery", label: t("gallery"), section: "gallery" },
                       { href: "#well-wishes", label: t("wishes"), section: "well-wishes" },
-                      { href: "#family", label: t("family"), section: "family" },
-                      { href: "/admin", label: t("login"), section: "admin" }
+                      { href: "#family", label: t("family"), section: "family" }
                     ].map((link) => (
                       <button
                         key={link.href}
                         onClick={() => {
-                          // Close menu immediately
                           setIsMenuOpen(false);
-
                           if (link.href.startsWith("#")) {
                             const targetId = link.href.substring(1);
-                            // Wait for drawer close animation (300ms) then scroll
                             setTimeout(() => {
                               const el = document.getElementById(targetId);
                               if (el) {
@@ -493,7 +500,6 @@ export const InvitationMain: React.FC<InvitationMainProps> = ({ guest, initialWe
                               }
                             }, 350);
                           } else {
-                            // External link like /admin
                             setTimeout(() => {
                               window.location.href = link.href;
                             }, 350);
@@ -504,7 +510,6 @@ export const InvitationMain: React.FC<InvitationMainProps> = ({ guest, initialWe
                         {link.label}
                       </button>
                     ))}
-
                   </div>
                 </motion.div>
               )}
@@ -674,8 +679,8 @@ export const InvitationMain: React.FC<InvitationMainProps> = ({ guest, initialWe
                 <SectionDivider />
               </div>
 
-              <div className="grid md:grid-cols-12 gap-8 items-stretch max-w-5xl mx-auto">
-                <div className="md:col-span-5 flex flex-col justify-between">
+              <div className="max-w-2xl mx-auto">
+                <div className="flex flex-col justify-between">
                   <div className="bg-[var(--surface-container-low)] rounded-3xl p-8 border border-[var(--border-warm)]/30 h-full flex flex-col justify-between shadow-sm">
                     <div>
                       <h3 className="serif text-2xl italic text-[var(--charcoal)] mb-2">{weddingInfo.locationName}</h3>
@@ -707,19 +712,6 @@ export const InvitationMain: React.FC<InvitationMainProps> = ({ guest, initialWe
                       {t("viewMap")}
                     </a>
                   </div>
-                </div>
-
-                <div className="md:col-span-7 min-h-[360px] rounded-3xl overflow-hidden border border-[var(--border-warm)]/30 shadow-md">
-                  <iframe src={(() => {
-                    const embed = weddingInfo.googleMapEmbedUrl || "";
-                    if (embed.trim().startsWith("<iframe")) {
-                      const match = embed.match(/src="([^"]+)"/);
-                      return match ? match[1] : embed;
-                    }
-                    return embed;
-                  })()} width="100%" height="100%"
-                    style={{ border: 0, minHeight: "360px" }} allowFullScreen loading="lazy"
-                    referrerPolicy="no-referrer-when-downgrade" title="Venue Map" />
                 </div>
               </div>
             </div>
