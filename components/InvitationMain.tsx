@@ -5,7 +5,7 @@ import { motion, AnimatePresence, useScroll, useTransform } from "framer-motion"
 import {
   Calendar, MapPin, Phone, MessageCircle, Mail, Send,
   ChevronDown, Check, Users, User, ArrowRight, ExternalLink, Heart,
-  Menu, X, MousePointer2
+  Menu, X, MousePointer2, Clock
 } from "lucide-react";
 import { useLanguage } from "../context/LanguageContext";
 import Image from "next/image";
@@ -634,9 +634,15 @@ export const InvitationMain: React.FC<InvitationMainProps> = ({ guest, initialWe
                         <h3 className="serif text-xl font-light italic text-[var(--charcoal)] mb-2 group-hover:text-[var(--primary)] transition-colors">{ev.title}</h3>
                         <p className="sans text-xs text-[var(--muted-text)] leading-relaxed mb-4">{ev.description}</p>
                         
-                        <div className="flex items-start justify-center gap-1.5 text-[var(--primary)] my-3 px-2">
-                          <MapPin className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-                          <span className="sans text-[11px] font-semibold text-center leading-tight">{ev.venue}</span>
+                        <div className="flex flex-col gap-2 items-center my-3 px-2">
+                          <div className="flex items-center gap-1.5 text-[var(--primary)]">
+                            <Clock className="w-3.5 h-3.5 shrink-0" />
+                            <span className="sans text-[11px] font-semibold text-center leading-tight">{ev.time}</span>
+                          </div>
+                          <div className="flex items-start justify-center gap-1.5 text-[var(--muted-text)]">
+                            <MapPin className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                            <span className="sans text-[11px] font-semibold text-center leading-tight">{ev.venue}</span>
+                          </div>
                         </div>
                       </div>
                     </div>

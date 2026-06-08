@@ -99,7 +99,8 @@ export default function AdminDashboard() {
   const [editingEventId, setEditingEventId] = useState<string | null>(null);
   const [newEventTitle, setNewEventTitle] = useState("");
   const [newEventDate, setNewEventDate] = useState("");
-  const [newEventTime, setNewEventTime] = useState(""); // Stores 24h format "HH:MM"
+  const [eventTimeValue, setEventTimeValue] = useState(""); // Stores HH:MM format e.g. "10:30"
+  const [eventTimeAmpm, setEventTimeAmpm] = useState("AM"); // Stores AM or PM
   const [newEventVenue, setNewEventVenue] = useState("");
   const [newEventDescription, setNewEventDescription] = useState("");
   const [newEventImageUrl, setNewEventImageUrl] = useState("");
@@ -1148,8 +1149,8 @@ export default function AdminDashboard() {
       setEventError("Please select an event date.");
       return;
     }
-    if (!newEventTime.trim()) {
-      setEventError("Please select an event time.");
+    if (!eventTimeValue.trim()) {
+      setEventError("Please enter an event time.");
       return;
     }
     if (!newEventVenue.trim()) {
@@ -1211,8 +1212,16 @@ export default function AdminDashboard() {
       return;
     }
 
+    // Validate time format (HH:MM)
+    const timeRegex = /^(0?[1-9]|1[0-2]):[0-5][0-9]$/;
+    if (!timeRegex.test(eventTimeValue.trim())) {
+      setEventError("Please enter a valid time in HH:MM format (between 01:00 and 12:59).");
+      setEventUploading(false);
+      return;
+    }
+
     try {
-      const eventTime12 = convert24to12(newEventTime);
+      const eventTime12 = `${eventTimeValue.trim()} ${eventTimeAmpm}`;
       const event: WeddingEvent = {
         id: editingEventId || `event-${Math.random().toString(36).substring(2, 9)}`,
         title: newEventTitle.trim(),
@@ -1230,7 +1239,8 @@ export default function AdminDashboard() {
       setEditingEventId(null);
       setNewEventTitle("");
       setNewEventDate("");
-      setNewEventTime("");
+      setEventTimeValue("");
+      setEventTimeAmpm("AM");
       setNewEventVenue("");
       setNewEventDescription("");
       setNewEventImageUrl("");
@@ -1255,7 +1265,17 @@ export default function AdminDashboard() {
     setEditingEventId(event.id);
     setNewEventTitle(event.title || "");
     setNewEventDate(event.date || "");
-    setNewEventTime(convert12to24(event.time) || "");
+    
+    // Parse time (e.g. "10:30 AM") into value and AM/PM
+    const m = (event.time || "").match(/(\d{1,2}:\d{2})\s*(AM|PM)/i);
+    if (m) {
+      setEventTimeValue(m[1]);
+      setEventTimeAmpm(m[2].toUpperCase());
+    } else {
+      setEventTimeValue("");
+      setEventTimeAmpm("AM");
+    }
+    
     setNewEventVenue(event.venue || "");
     setNewEventDescription(event.description || "");
     setNewEventImageUrl(event.imageUrl || "");
@@ -1270,7 +1290,8 @@ export default function AdminDashboard() {
     setEditingEventId(null);
     setNewEventTitle("");
     setNewEventDate("");
-    setNewEventTime("");
+    setEventTimeValue("");
+    setEventTimeAmpm("AM");
     setNewEventVenue("");
     setNewEventDescription("");
     setNewEventImageUrl("");
@@ -2807,15 +2828,29 @@ export default function AdminDashboard() {
                   </div>
 
                   {/* Event Time */}
-                  <div>
-                    <label className="block text-xs uppercase font-bold text-slate-400 mb-1">Event Time</label>
-                    <input
-                      type="time"
-                      required
-                      value={newEventTime || ""}
-                      onChange={(e) => setNewEventTime(e.target.value)}
-                      className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm bg-white"
-                    />
+                  <div className="flex gap-2">
+                    <div className="flex-1">
+                      <label className="block text-xs uppercase font-bold text-slate-400 mb-1">Event Time</label>
+                      <input
+                        type="text"
+                        required
+                        value={eventTimeValue || ""}
+                        onChange={(e) => setEventTimeValue(e.target.value)}
+                        placeholder="e.g. 10:30"
+                        className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm bg-white"
+                      />
+                    </div>
+                    <div className="w-24">
+                      <label className="block text-xs uppercase font-bold text-slate-400 mb-1">AM / PM</label>
+                      <select
+                        value={eventTimeAmpm}
+                        onChange={(e) => setEventTimeAmpm(e.target.value)}
+                        className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white animate-fadeIn"
+                      >
+                        <option value="AM">AM</option>
+                        <option value="PM">PM</option>
+                      </select>
+                    </div>
                   </div>
 
                   {/* Event Venue */}
