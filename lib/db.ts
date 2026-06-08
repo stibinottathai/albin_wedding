@@ -18,6 +18,7 @@ export interface WeddingInfo {
   groomSiblings: string;
   brideParents: string;
   brideSiblings: string;
+  categories?: string; // serialized JSON array of guest categories
 }
 
 export interface WeddingEvent {
@@ -42,6 +43,7 @@ export interface Guest {
   rsvpAttendees: number;
   rsvpMessage: string;
   updatedAt?: string;
+  category?: string; // e.g. "Family", "Friends", "Relatives", etc.
 }
 
 export interface Wish {
@@ -100,6 +102,7 @@ const DEFAULT_WEDDING_INFO: WeddingInfo = {
   groomSiblings: "Rinoy & Anjali",
   brideParents: "Mr. Joseph & Mrs. Elizabeth Kizhakkekara",
   brideSiblings: "Kevin & Teresa",
+  categories: '["General","Family","Friends","Relatives"]',
 };
 
 const DEFAULT_EVENTS: WeddingEvent[] = [
@@ -628,7 +631,7 @@ export const getGuests = async (): Promise<Guest[]> => {
   return mockDb.getGuests();
 };
 
-export const createGuest = async (name: string, greeting: string, allowedAttendees: number, email?: string): Promise<Guest> => {
+export const createGuest = async (name: string, greeting: string, allowedAttendees: number, email?: string, category: string = "General"): Promise<Guest> => {
   const newGuest: Guest = {
     id: Math.random().toString(36).substring(2, 9),
     name,
@@ -639,6 +642,7 @@ export const createGuest = async (name: string, greeting: string, allowedAttende
     rsvpStatus: "pending",
     rsvpAttendees: 0,
     rsvpMessage: "",
+    category,
   };
 
   if (isSupabaseConfigured) {
@@ -655,6 +659,29 @@ export const createGuest = async (name: string, greeting: string, allowedAttende
   guests.push(newGuest);
   mockDb.saveGuests(guests);
   return newGuest;
+};
+
+export const updateGuest = async (guestId: string, updatedFields: Partial<Omit<Guest, "id">>): Promise<void> => {
+  if (isSupabaseConfigured) {
+    try {
+      const { error } = await supabase
+        .from("guests")
+        .update(updatedFields)
+        .eq("id", guestId);
+      if (!error) return;
+    } catch (e) {
+      console.error("Supabase updateGuest error:", e);
+    }
+  }
+  const guests = mockDb.getGuests();
+  const index = guests.findIndex(g => g.id === guestId);
+  if (index >= 0) {
+    guests[index] = {
+      ...guests[index],
+      ...updatedFields
+    };
+    mockDb.saveGuests(guests);
+  }
 };
 
 export const deleteGuest = async (guestId: string): Promise<void> => {

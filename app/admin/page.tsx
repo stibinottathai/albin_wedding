@@ -18,13 +18,15 @@ import {
   ClipboardList,
   Filter,
   Camera,
-  BookOpen
+  BookOpen,
+  Edit
 } from "lucide-react";
 import { 
   getWeddingInfo, 
   saveWeddingInfo, 
   getGuests, 
   createGuest, 
+  updateGuest,
   deleteGuest, 
   getAnalytics, 
   getGalleryImages,
@@ -96,6 +98,19 @@ export default function AdminDashboard() {
   const [newGuestGreeting, setNewGuestGreeting] = useState("");
   const [newGuestAttendees, setNewGuestAttendees] = useState(2);
   const [newGuestEmail, setNewGuestEmail] = useState("");
+  const [newGuestCategory, setNewGuestCategory] = useState("General");
+  const [isAddingCustomCategory, setIsAddingCustomCategory] = useState(false);
+  const [customCategoryInput, setCustomCategoryInput] = useState("");
+  const [guestFilterCategory, setGuestFilterCategory] = useState("All");
+
+  // WhatsApp Card Sharing Modal
+  const [sharingGuest, setSharingGuest] = useState<Guest | null>(null);
+  const [selectedTemplate, setSelectedTemplate] = useState<"floral" | "gold" | "modern" | "gallery">("floral");
+  const [selectedGalleryImage, setSelectedGalleryImage] = useState("");
+  const [sharePhone, setSharePhone] = useState("");
+  const canvasRef = React.useRef<HTMLCanvasElement>(null);
+  const [editingGuest, setEditingGuest] = useState<Guest | null>(null);
+  const [viewingRsvpMessage, setViewingRsvpMessage] = useState<{ name: string; greeting: string; message: string } | null>(null);
   
   // Feedback states
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -242,6 +257,166 @@ export default function AdminDashboard() {
     }
   }, [isAuthenticated]);
 
+  // Resolve Categories list dynamically
+  const guestCategories: string[] = weddingInfo?.categories
+    ? JSON.parse(weddingInfo.categories)
+    : ["General", "Family", "Friends", "Relatives"];
+
+  // Re-render Canvas Invitation Card
+  useEffect(() => {
+    if (!sharingGuest || !canvasRef.current || !weddingInfo) return;
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    // Clear Canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    const renderCanvasText = (
+      context: CanvasRenderingContext2D,
+      cvs: HTMLCanvasElement,
+      textColor: string,
+      accentColor: string
+    ) => {
+      const drawCenterText = (text: string, y: number, font: string, color: string) => {
+        context.fillStyle = color;
+        context.font = font;
+        context.textAlign = "center";
+        context.fillText(text, cvs.width / 2, y);
+      };
+
+      // 1. Save The Date Monogram
+      drawCenterText("SAVE THE DATE", 110, "bold 14px sans-serif", accentColor);
+
+      // 2. Names of Groom & Bride
+      const groom = weddingInfo?.groomName || "Albin";
+      const bride = weddingInfo?.brideName || "Stella";
+      drawCenterText(`${groom}  &  ${bride}`, 200, "italic 44px Georgia, serif", textColor);
+
+      // 3. Separation line
+      context.strokeStyle = accentColor;
+      context.lineWidth = 2;
+      context.beginPath();
+      context.moveTo(cvs.width / 2 - 80, 240);
+      context.lineTo(cvs.width / 2 + 80, 240);
+      context.stroke();
+
+      // 4. Specially Invited
+      drawCenterText("SPECIALLY INVITED:", 295, "bold 11px sans-serif", selectedTemplate === "gold" || selectedTemplate === "gallery" ? "#cccccc" : "#6b7280");
+      
+      // 5. Guest Greeting
+      drawCenterText(sharingGuest?.greeting || "", 355, "italic 30px Georgia, serif", accentColor);
+
+      // 6. Venue & Date Info
+      const dateObj = new Date(weddingInfo?.weddingDate || "");
+      const dateStr = weddingInfo?.weddingDate && !isNaN(dateObj.getTime())
+        ? dateObj.toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })
+        : weddingInfo?.weddingDate || "";
+
+      drawCenterText(dateStr, 430, "bold 14px sans-serif", textColor);
+      drawCenterText(weddingInfo?.locationName || "", 470, "16px sans-serif", textColor);
+      
+      // 7. Footer invitation line
+      drawCenterText("Please view our digital invitation card for details and RSVP.", 525, "italic 13px sans-serif", selectedTemplate === "gold" || selectedTemplate === "gallery" ? "#cccccc" : "#4b5563");
+    };
+
+    if (selectedTemplate === "gallery" && selectedGalleryImage) {
+      const img = new Image();
+      img.crossOrigin = "anonymous"; // Avoid tainted canvas
+      img.src = selectedGalleryImage;
+      img.onload = () => {
+        // Draw image covered
+        const imgRatio = img.width / img.height;
+        const canvasRatio = canvas.width / canvas.height;
+        let dWidth = canvas.width;
+        let dHeight = canvas.height;
+        let sx = 0;
+        let sy = 0;
+        let sWidth = img.width;
+        let sHeight = img.height;
+
+        if (imgRatio > canvasRatio) {
+          sWidth = img.height * canvasRatio;
+          sx = (img.width - sWidth) / 2;
+        } else {
+          sHeight = img.width / canvasRatio;
+          sy = (img.height - sHeight) / 2;
+        }
+
+        ctx.drawImage(img, sx, sy, sWidth, sHeight, 0, 0, dWidth, dHeight);
+
+        // Semi-transparent dark overlay so text is legible
+        ctx.fillStyle = "rgba(0, 0, 0, 0.65)";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Gold border
+        ctx.strokeStyle = "#d4af37";
+        ctx.lineWidth = 4;
+        ctx.strokeRect(30, 30, canvas.width - 60, canvas.height - 60);
+
+        renderCanvasText(ctx, canvas, "#ffffff", "#d4af37");
+      };
+      img.onerror = () => {
+        // Fallback to floral template on error
+        const grad = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+        grad.addColorStop(0, "#fffcf9");
+        grad.addColorStop(1, "#fcf1e5");
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.strokeStyle = "#d4af37";
+        ctx.lineWidth = 6;
+        ctx.strokeRect(30, 30, canvas.width - 60, canvas.height - 60);
+        renderCanvasText(ctx, canvas, "#1f2937", "#d4af37");
+      };
+    } else {
+      let textColor = "#1f2937";
+      let accentColor = "#d4af37";
+
+      if (selectedTemplate === "floral") {
+        const grad = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+        grad.addColorStop(0, "#fffcf9");
+        grad.addColorStop(1, "#fcf1e5");
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.strokeStyle = "#d4af37";
+        ctx.lineWidth = 6;
+        ctx.strokeRect(30, 30, canvas.width - 60, canvas.height - 60);
+
+        // Corner accents
+        ctx.fillStyle = "#8d795b";
+        ctx.font = "italic 32px serif";
+        ctx.fillText("❀", 60, 80);
+        ctx.fillText("❀", canvas.width - 90, 80);
+        ctx.fillText("❀", 60, canvas.height - 70);
+        ctx.fillText("❀", canvas.width - 90, canvas.height - 70);
+      } else if (selectedTemplate === "gold") {
+        ctx.fillStyle = "#1b1816";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.strokeStyle = "#d4af37";
+        ctx.lineWidth = 6;
+        ctx.strokeRect(30, 30, canvas.width - 60, canvas.height - 60);
+
+        ctx.strokeStyle = "#eec960";
+        ctx.lineWidth = 1;
+        ctx.strokeRect(40, 40, canvas.width - 80, canvas.height - 80);
+        textColor = "#ffffff";
+      } else {
+        // Modern Minimalist
+        ctx.fillStyle = "#f3f4f6";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.strokeStyle = "#1f2937";
+        ctx.lineWidth = 4;
+        ctx.strokeRect(40, 40, canvas.width - 80, canvas.height - 80);
+        accentColor = "#1f2937";
+      }
+
+      renderCanvasText(ctx, canvas, textColor, accentColor);
+    }
+  }, [sharingGuest, selectedTemplate, selectedGalleryImage, weddingInfo]);
+
   // Copy invitation link to clipboard
   const handleCopyLink = (guestId: string) => {
     if (typeof window === "undefined") return;
@@ -252,26 +427,95 @@ export default function AdminDashboard() {
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  // Add Guest Action
+  // Add/Edit Guest Action
   const handleCreateGuest = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newGuestName.trim()) return;
 
     try {
-      await createGuest(
-        newGuestName.trim(), 
-        newGuestGreeting.trim() || newGuestName.trim(), 
-        newGuestAttendees, 
-        newGuestEmail.trim() || undefined
-      );
+      if (editingGuest) {
+        await updateGuest(editingGuest.id, {
+          name: newGuestName.trim(),
+          greeting: newGuestGreeting.trim() || newGuestName.trim(),
+          allowedAttendees: newGuestAttendees,
+          email: newGuestEmail.trim() || undefined,
+          category: newGuestCategory
+        });
+        setEditingGuest(null);
+      } else {
+        await createGuest(
+          newGuestName.trim(), 
+          newGuestGreeting.trim() || newGuestName.trim(), 
+          newGuestAttendees, 
+          newGuestEmail.trim() || undefined,
+          newGuestCategory
+        );
+      }
       setNewGuestName("");
       setNewGuestGreeting("");
       setNewGuestAttendees(2);
       setNewGuestEmail("");
+      setNewGuestCategory("General");
       loadAdminData(); // Refresh list
     } catch (err) {
       console.error(err);
     }
+  };
+
+  const handleEditGuest = (guest: Guest) => {
+    setEditingGuest(guest);
+    setNewGuestName(guest.name || "");
+    setNewGuestGreeting(guest.greeting || "");
+    setNewGuestAttendees(guest.allowedAttendees || 2);
+    setNewGuestEmail(guest.email || "");
+    setNewGuestCategory(guest.category || "General");
+  };
+
+  const handleCancelEditGuest = () => {
+    setEditingGuest(null);
+    setNewGuestName("");
+    setNewGuestGreeting("");
+    setNewGuestAttendees(2);
+    setNewGuestEmail("");
+    setNewGuestCategory("General");
+  };
+
+  // Add custom category in dropdown
+  const handleSaveCustomCategory = async () => {
+    const trimmed = customCategoryInput.trim();
+    if (!trimmed) return;
+    if (guestCategories.includes(trimmed)) {
+      setNewGuestCategory(trimmed);
+      setIsAddingCustomCategory(false);
+      setCustomCategoryInput("");
+      return;
+    }
+
+    const updatedCategories = [...guestCategories, trimmed];
+    if (weddingInfo) {
+      const updatedInfo = {
+        ...weddingInfo,
+        categories: JSON.stringify(updatedCategories)
+      };
+      try {
+        await saveWeddingInfo(updatedInfo);
+        setWeddingInfo(updatedInfo);
+      } catch (err) {
+        console.error("Failed to save custom category:", err);
+      }
+    }
+    setNewGuestCategory(trimmed);
+    setIsAddingCustomCategory(false);
+    setCustomCategoryInput("");
+  };
+
+  // Download digital invitation card
+  const handleDownloadCard = () => {
+    if (!canvasRef.current || !sharingGuest) return;
+    const link = document.createElement("a");
+    link.download = `Invitation_${sharingGuest.name.replace(/\s+/g, "_")}.png`;
+    link.href = canvasRef.current.toDataURL("image/png");
+    link.click();
   };
 
   // Delete Guest Action
@@ -926,10 +1170,21 @@ export default function AdminDashboard() {
                             {g.rsvpStatus === "accepted" ? g.rsvpAttendees : "—"}
                           </td>
                           <td className="px-6 py-4 text-slate-500">{g.allowedAttendees}</td>
-                          <td className="px-6 py-4 max-w-xs">
-                            <span className="text-slate-600 italic text-xs line-clamp-2">
-                              {g.rsvpMessage || <span className="text-slate-300">No message</span>}
-                            </span>
+                          <td className="px-6 py-4 max-w-xs whitespace-nowrap">
+                            {g.rsvpMessage ? (
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-xs text-slate-500 italic max-w-[120px] truncate block">"{g.rsvpMessage}"</span>
+                                <button
+                                  onClick={() => setViewingRsvpMessage({ name: g.name, greeting: g.greeting, message: g.rsvpMessage })}
+                                  className="px-2 py-0.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-[10px] font-semibold transition-all cursor-pointer border border-slate-200"
+                                  title="View Message"
+                                >
+                                  View
+                                </button>
+                              </div>
+                            ) : (
+                              <span className="text-slate-300">—</span>
+                            )}
                           </td>
                           <td className="px-6 py-4 text-xs text-slate-400 whitespace-nowrap">
                             {g.updatedAt
@@ -958,16 +1213,18 @@ export default function AdminDashboard() {
         {/* Tab 2: Guest List */}
         {activeTab === "guests" && (
           <div className="space-y-8 animate-fadeIn">
-            {/* Add Guest Form */}
+            {/* Add/Edit Guest Form */}
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-              <h3 className="font-serif font-bold text-lg text-slate-900 mb-4">Add Invitation</h3>
-              <form onSubmit={handleCreateGuest} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+              <h3 className="font-serif font-bold text-lg text-slate-900 mb-4">
+                {editingGuest ? "Edit Invitation" : "Add Invitation"}
+              </h3>
+              <form onSubmit={handleCreateGuest} className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
                 <div>
                   <label className="block text-xs uppercase font-bold text-slate-400 mb-1">Guest Name</label>
                   <input
                     type="text"
                     required
-                    value={newGuestName}
+                    value={newGuestName || ""}
                     onChange={(e) => setNewGuestName(e.target.value)}
                     placeholder="e.g. Uncle Jacob"
                     className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm"
@@ -977,7 +1234,7 @@ export default function AdminDashboard() {
                   <label className="block text-xs uppercase font-bold text-slate-400 mb-1">Greeting Label</label>
                   <input
                     type="text"
-                    value={newGuestGreeting}
+                    value={newGuestGreeting || ""}
                     onChange={(e) => setNewGuestGreeting(e.target.value)}
                     placeholder="e.g. Uncle Jacob & Aunt Susan"
                     className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm"
@@ -994,14 +1251,113 @@ export default function AdminDashboard() {
                     className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm"
                   />
                 </div>
-                <button
-                  type="submit"
-                  className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs uppercase tracking-wider font-semibold flex items-center justify-center gap-1.5 transition-all"
-                >
-                  <Plus className="h-4 w-4" />
-                  Generate Link
-                </button>
+                <div>
+                  <label className="block text-xs uppercase font-bold text-slate-400 mb-1">Category</label>
+                  {isAddingCustomCategory ? (
+                    <div className="flex gap-1 items-center">
+                      <input
+                        type="text"
+                        required
+                        value={customCategoryInput || ""}
+                        onChange={(e) => setCustomCategoryInput(e.target.value)}
+                        placeholder="New Category..."
+                        className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-slate-400"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleSaveCustomCategory}
+                        className="p-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg transition-colors shrink-0 cursor-pointer"
+                        title="Add Category"
+                      >
+                        <Check className="h-4 w-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsAddingCustomCategory(false);
+                          setCustomCategoryInput("");
+                          setNewGuestCategory("General");
+                        }}
+                        className="p-2.5 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg transition-colors shrink-0 cursor-pointer"
+                        title="Cancel"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <select
+                      value={newGuestCategory || "General"}
+                      onChange={(e) => {
+                        if (e.target.value === "__new__") {
+                          setIsAddingCustomCategory(true);
+                        } else {
+                          setNewGuestCategory(e.target.value);
+                        }
+                      }}
+                      className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm bg-white"
+                    >
+                      {guestCategories.map((cat) => (
+                        <option key={cat} value={cat}>{cat}</option>
+                      ))}
+                      <option value="__new__">+ Add Custom...</option>
+                    </select>
+                  )}
+                </div>
+                <div className="flex gap-2 w-full">
+                  <button
+                    type="submit"
+                    className="flex-1 px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs uppercase tracking-wider font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer h-[38px]"
+                  >
+                    {editingGuest ? (
+                      <>
+                        <Check className="h-4 w-4" />
+                        Save
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="h-4 w-4" />
+                        Generate Link
+                      </>
+                    )}
+                  </button>
+                  {editingGuest && (
+                    <button
+                      type="button"
+                      onClick={handleCancelEditGuest}
+                      className="px-4 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg text-xs uppercase tracking-wider font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer h-[38px]"
+                    >
+                      Cancel
+                    </button>
+                  )}
+                </div>
               </form>
+            </div>
+
+            {/* Category Filter Tabs */}
+            <div className="flex flex-wrap gap-2 mb-2">
+              <button
+                onClick={() => setGuestFilterCategory("All")}
+                className={`px-4 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wider border transition-all cursor-pointer ${
+                  guestFilterCategory === "All"
+                    ? "bg-slate-900 text-white border-slate-900 shadow-sm"
+                    : "bg-white text-slate-500 border-slate-200 hover:border-slate-400"
+                }`}
+              >
+                All Categories
+              </button>
+              {guestCategories.map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => setGuestFilterCategory(cat)}
+                  className={`px-4 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wider border transition-all cursor-pointer ${
+                    guestFilterCategory === cat
+                      ? "bg-slate-900 text-white border-slate-900 shadow-sm"
+                      : "bg-white text-slate-500 border-slate-200 hover:border-slate-400"
+                  }`}
+                >
+                  {cat}
+                </button>
+              ))}
             </div>
 
             {/* Guests List Table */}
@@ -1011,6 +1367,7 @@ export default function AdminDashboard() {
                   <thead className="bg-slate-50 text-xs uppercase font-bold text-slate-400 border-b border-slate-200">
                     <tr>
                       <th className="px-6 py-4">Guest Name</th>
+                      <th className="px-6 py-4">Category</th>
                       <th className="px-6 py-4">Allowed</th>
                       <th className="px-6 py-4">Views</th>
                       <th className="px-6 py-4">Status</th>
@@ -1020,55 +1377,103 @@ export default function AdminDashboard() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-200">
-                    {guests.map((g) => (
-                      <tr key={g.id} className="hover:bg-slate-50">
-                        <td className="px-6 py-4 font-medium text-slate-900">
-                          <div>{g.name}</div>
-                          <span className="text-[11px] text-slate-400 italic font-normal">{g.greeting}</span>
-                        </td>
-                        <td className="px-6 py-4">{g.allowedAttendees}</td>
-                        <td className="px-6 py-4">
-                          <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${g.openedCount > 0 ? "bg-blue-100 text-blue-800" : "bg-slate-100 text-slate-800"}`}>
-                            {g.openedCount} opens
-                          </span>
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className={`px-2.5 py-1 rounded-full text-[10px] uppercase font-bold tracking-wider ${
-                            g.rsvpStatus === "accepted" ? "bg-emerald-100 text-emerald-800" :
-                            g.rsvpStatus === "declined" ? "bg-rose-100 text-rose-800" : "bg-amber-100 text-amber-800"
-                          }`}>
-                            {g.rsvpStatus}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4">
-                          {g.rsvpStatus === "accepted" ? `${g.rsvpAttendees} / ${g.allowedAttendees}` : "—"}
-                        </td>
-                        <td className="px-6 py-4 max-w-xs truncate italic">{g.rsvpMessage || "—"}</td>
-                        <td className="px-6 py-4 text-right space-x-2 shrink-0">
-                          <button
-                            onClick={() => handleCopyLink(g.id)}
-                            className="text-slate-500 hover:text-slate-950 inline-flex items-center gap-1 text-xs"
-                            title="Copy Invitation Link"
-                          >
-                            {copiedId === g.id ? (
-                              <span className="text-emerald-600 flex items-center gap-0.5">
-                                <Check className="h-3.5 w-3.5" /> Copied
-                              </span>
+                    {guests
+                      .filter(g => guestFilterCategory === "All" || g.category === guestFilterCategory)
+                      .map((g) => (
+                        <tr key={g.id} className="hover:bg-slate-50">
+                          <td className="px-6 py-4 font-medium text-slate-900">
+                            <div>{g.name}</div>
+                            <span className="text-[11px] text-slate-400 italic font-normal">{g.greeting}</span>
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className="px-2.5 py-1 rounded-full text-[10px] uppercase tracking-wider font-semibold bg-slate-100 text-slate-600 border border-slate-200">
+                              {g.category || "General"}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4">{g.allowedAttendees}</td>
+                          <td className="px-6 py-4">
+                            <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${g.openedCount > 0 ? "bg-blue-100 text-blue-800" : "bg-slate-100 text-slate-800"}`}>
+                              {g.openedCount} opens
+                            </span>
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className={`px-2.5 py-1 rounded-full text-[10px] uppercase font-bold tracking-wider ${
+                              g.rsvpStatus === "accepted" ? "bg-emerald-100 text-emerald-800" :
+                              g.rsvpStatus === "declined" ? "bg-rose-100 text-rose-800" : "bg-amber-100 text-amber-800"
+                            }`}>
+                              {g.rsvpStatus}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4">
+                            {g.rsvpStatus === "accepted" ? `${g.rsvpAttendees} / ${g.allowedAttendees}` : "—"}
+                          </td>
+                          <td className="px-6 py-4 max-w-xs whitespace-nowrap">
+                            {g.rsvpMessage ? (
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-xs text-slate-500 italic max-w-[120px] truncate block">"{g.rsvpMessage}"</span>
+                                <button
+                                  onClick={() => setViewingRsvpMessage({ name: g.name, greeting: g.greeting, message: g.rsvpMessage })}
+                                  className="px-2 py-0.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-[10px] font-semibold transition-all cursor-pointer border border-slate-200"
+                                  title="View Message"
+                                >
+                                  View
+                                </button>
+                              </div>
                             ) : (
-                              <>
-                                <Copy className="h-3.5 w-3.5" /> Link
-                              </>
+                              <span className="text-slate-300">—</span>
                             )}
-                          </button>
-                          <button
-                            onClick={() => handleDeleteGuest(g.id)}
-                            className="text-rose-500 hover:text-rose-700 inline-flex"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
+                          </td>
+                          <td className="px-6 py-4 text-right space-x-2.5 shrink-0 whitespace-nowrap">
+                            <button
+                              onClick={() => {
+                                setSharingGuest(g);
+                                setSharePhone("");
+                                setSelectedTemplate("floral");
+                                if (galleryImages.length > 0) {
+                                  setSelectedGalleryImage(galleryImages[0].src);
+                                }
+                              }}
+                              className="text-emerald-600 hover:text-emerald-800 inline-flex items-center gap-1 text-xs cursor-pointer font-semibold"
+                              title="Share on WhatsApp"
+                            >
+                              <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+                                <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.713-1.457L0 24zm6.59-4.846c1.6.95 3.498 1.451 5.42 1.453 5.518 0 10.007-4.488 10.01-10.008.002-2.673-1.038-5.186-2.93-7.078-1.892-1.891-4.407-2.934-7.086-2.935-5.525 0-10.015 4.487-10.018 10.007-.001 1.93.502 3.818 1.456 5.42l-.95 3.47 3.543-.93zm11.367-7.834c-.312-.156-1.848-.912-2.128-1.012-.282-.102-.487-.156-.692.154-.204.312-.792.992-.972 1.196-.18.204-.36.23-.672.074-.312-.156-1.318-.486-2.51-1.549-.928-.827-1.554-1.849-1.737-2.16-.18-.312-.02-.482.137-.636.141-.138.312-.36.468-.541.156-.18.208-.3.312-.51.104-.209.052-.394-.026-.55-.078-.157-.692-1.668-.948-2.285-.249-.597-.502-.516-.692-.526-.178-.008-.384-.01-.591-.01-.205 0-.54.077-.822.384-.282.308-1.077 1.053-1.077 2.566s1.102 2.978 1.257 3.184c.154.204 2.168 3.31 5.253 4.641.733.317 1.307.507 1.753.649.737.234 1.407.2 1.938.122.59-.087 1.848-.756 2.11-.1447.261-.708.261-1.314.183-1.423-.079-.11-.283-.167-.595-.323z" />
+                              </svg>
+                              Invite
+                            </button>
+                            <button
+                              onClick={() => handleCopyLink(g.id)}
+                              className="text-slate-500 hover:text-slate-950 inline-flex items-center gap-1 text-xs cursor-pointer font-semibold"
+                              title="Copy Invitation Link"
+                            >
+                              {copiedId === g.id ? (
+                                <span className="text-emerald-600 flex items-center gap-0.5 font-semibold">
+                                  <Check className="h-3.5 w-3.5" /> Copied
+                                </span>
+                              ) : (
+                                <>
+                                  <Copy className="h-3.5 w-3.5" /> Link
+                                </>
+                              )}
+                            </button>
+                            <button
+                              onClick={() => handleEditGuest(g)}
+                              className="text-blue-600 hover:text-blue-800 inline-flex items-center gap-1 text-xs cursor-pointer font-semibold"
+                              title="Edit Guest Details"
+                            >
+                              <Edit className="h-3.5 w-3.5" />
+                              Edit
+                            </button>
+                            <button
+                              onClick={() => handleDeleteGuest(g.id)}
+                              className="text-rose-500 hover:text-rose-700 inline-flex cursor-pointer"
+                              title="Delete Guest"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
                   </tbody>
                 </table>
               </div>
@@ -1718,6 +2123,210 @@ export default function AdminDashboard() {
           </div>
         )}
       </main>
+
+      {/* WhatsApp Invite & Canvas Card Modal */}
+      {sharingGuest && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-3xl max-w-4xl w-full border border-slate-200 shadow-2xl p-6 md:p-8 relative grid grid-cols-1 md:grid-cols-2 gap-8 text-left animate-fadeIn">
+            
+            {/* Close Button */}
+            <button
+              onClick={() => setSharingGuest(null)}
+              className="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-all cursor-pointer"
+              title="Close Modal"
+            >
+              <X className="h-5 w-5" />
+            </button>
+
+            {/* Left Column: Canvas Preview */}
+            <div className="space-y-4">
+              <h3 className="font-serif font-bold text-lg text-slate-900 mb-1">Personalized Card Preview</h3>
+              <p className="text-xs text-slate-500">Live generated card with the guest's personalized greeting label.</p>
+              
+              {/* Canvas Card */}
+              <div className="flex justify-center bg-slate-50 p-3 rounded-2xl border border-slate-100">
+                <canvas
+                  ref={canvasRef}
+                  width={600}
+                  height={450}
+                  className="w-full max-w-sm aspect-[4/3] rounded-xl border border-slate-200 shadow-sm bg-white"
+                />
+              </div>
+
+              {/* Design Template Selector */}
+              <div>
+                <label className="block text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-2 font-bold">Select Theme Design</label>
+                <div className="grid grid-cols-4 gap-2">
+                  <button
+                    onClick={() => setSelectedTemplate("floral")}
+                    className={`py-2 px-1 text-center rounded-lg text-xs font-semibold border transition-all cursor-pointer ${
+                      selectedTemplate === "floral" ? "border-amber-500 bg-amber-50/50 text-amber-700" : "border-slate-200 hover:border-slate-400"
+                    }`}
+                  >
+                    Classic Floral
+                  </button>
+                  <button
+                    onClick={() => setSelectedTemplate("gold")}
+                    className={`py-2 px-1 text-center rounded-lg text-xs font-semibold border transition-all cursor-pointer ${
+                      selectedTemplate === "gold" ? "border-amber-500 bg-slate-900 text-white" : "border-slate-200 hover:border-slate-400"
+                    }`}
+                  >
+                    Royal Gold
+                  </button>
+                  <button
+                    onClick={() => setSelectedTemplate("modern")}
+                    className={`py-2 px-1 text-center rounded-lg text-xs font-semibold border transition-all cursor-pointer ${
+                      selectedTemplate === "modern" ? "border-slate-900 bg-slate-50 text-slate-900" : "border-slate-200 hover:border-slate-400"
+                    }`}
+                  >
+                    Modern Slate
+                  </button>
+                  <button
+                    onClick={() => setSelectedTemplate("gallery")}
+                    className={`py-2 px-1 text-center rounded-lg text-xs font-semibold border transition-all cursor-pointer ${
+                      selectedTemplate === "gallery" ? "border-amber-500 bg-amber-50/50 text-amber-700" : "border-slate-200 hover:border-slate-400"
+                    }`}
+                  >
+                    Wedding Photo
+                  </button>
+                </div>
+              </div>
+
+              {/* Gallery Image Picker if Wedding Photo Selected */}
+              {selectedTemplate === "gallery" && (
+                <div className="animate-fadeIn">
+                  <label className="block text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-2 font-bold">Choose Wedding Gallery Photo</label>
+                  {galleryImages.length === 0 ? (
+                    <p className="text-xs text-rose-500 font-medium italic">No gallery photos available. Upload some in the Wedding Gallery tab!</p>
+                  ) : (
+                    <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin max-w-sm">
+                      {galleryImages.map((img) => (
+                        <button
+                          key={img.id}
+                          onClick={() => setSelectedGalleryImage(img.src)}
+                          className={`w-16 h-12 rounded-lg overflow-hidden border-2 shrink-0 transition-all ${
+                            selectedGalleryImage === img.src ? "border-amber-500 scale-95" : "border-transparent opacity-70 hover:opacity-100"
+                          }`}
+                        >
+                          <img src={img.src} alt={img.alt} className="w-full h-full object-cover" />
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Download Action */}
+              <button
+                onClick={handleDownloadCard}
+                className="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs uppercase tracking-wider font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-sm"
+              >
+                Download Invitation Card (PNG)
+              </button>
+            </div>
+
+            {/* Right Column: Message & Share */}
+            <div className="flex flex-col justify-between h-full">
+              <div className="space-y-5">
+                <div>
+                  <h3 className="font-serif font-bold text-lg text-slate-900">Invite via WhatsApp</h3>
+                  <p className="text-xs text-slate-500 mt-1">Send a pre-crafted message with the invitation link directly to the guest.</p>
+                </div>
+
+                {/* Direct Phone Number Input */}
+                <div>
+                  <label className="block text-xs uppercase font-bold text-[#d4af37] mb-1 font-bold">WhatsApp Number (Optional)</label>
+                  <input
+                    type="text"
+                    value={sharePhone}
+                    onChange={(e) => setSharePhone(e.target.value.replace(/[^\d+]/g, ""))}
+                    placeholder="e.g. +919876543210 (with country code)"
+                    className="w-full px-4 py-2 border border-slate-200 rounded-lg text-xs"
+                  />
+                  <span className="text-[10px] text-slate-400 mt-1 block">Include country code (e.g. +91 or +1) without spaces or hyphens. If left empty, WhatsApp contact selection opens.</span>
+                </div>
+
+                {/* Invitation Text Box */}
+                <div>
+                  <label className="block text-xs uppercase font-bold text-slate-400 mb-1">Pre-crafted Text Message</label>
+                  <textarea
+                    rows={8}
+                    readOnly
+                    value={`Dearest ${sharingGuest.greeting},\n\nWe are delighted to invite you to celebrate our wedding. Please find our digital invitation card and RSVP details at the link below:\n\n${
+                      typeof window !== "undefined" ? window.location.origin : ""
+                    }/invite/${sharingGuest.id}\n\nWith love,\nAlbin & Stella`}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-600 resize-none font-mono"
+                  />
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="grid grid-cols-2 gap-4 mt-6">
+                <button
+                  onClick={() => {
+                    const text = `Dearest ${sharingGuest.greeting},\n\nWe are delighted to invite you to celebrate our wedding. Please find our digital invitation card and RSVP details at the link below:\n\n${
+                      typeof window !== "undefined" ? window.location.origin : ""
+                    }/invite/${sharingGuest.id}\n\nWith love,\nAlbin & Stella`;
+                    navigator.clipboard.writeText(text);
+                    alert("Invitation text copied to clipboard!");
+                  }}
+                  className="py-3 border border-slate-200 hover:border-slate-400 text-slate-700 rounded-xl text-xs uppercase tracking-wider font-semibold transition-all cursor-pointer text-center font-bold"
+                >
+                  Copy Message
+                </button>
+                <a
+                  href={`https://api.whatsapp.com/send?${
+                    sharePhone.trim() ? `phone=${encodeURIComponent(sharePhone.trim())}&` : ""
+                  }text=${encodeURIComponent(
+                    `Dearest ${sharingGuest.greeting},\n\nWe are delighted to invite you to celebrate our wedding. Please find our digital invitation card and RSVP details at the link below:\n\n${
+                      typeof window !== "undefined" ? window.location.origin : ""
+                    }/invite/${sharingGuest.id}\n\nWith love,\nAlbin & Stella`
+                  )}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-xs uppercase tracking-wider font-semibold transition-all cursor-pointer text-center shadow-md flex items-center justify-center gap-1.5 font-bold"
+                >
+                  <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                    <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.713-1.457L0 24zm6.59-4.846c1.6.95 3.498 1.451 5.42 1.453 5.518 0 10.007-4.488 10.01-10.008.002-2.673-1.038-5.186-2.93-7.078-1.892-1.891-4.407-2.934-7.086-2.935-5.525 0-10.015 4.487-10.018 10.007-.001 1.93.502 3.818 1.456 5.42l-.95 3.47 3.543-.93zm11.367-7.834c-.312-.156-1.848-.912-2.128-1.012-.282-.102-.487-.156-.692.154-.204.312-.792.992-.972 1.196-.18.204-.36.23-.672.074-.312-.156-1.318-.486-2.51-1.549-.928-.827-1.554-1.849-1.737-2.16-.18-.312-.02-.482.137-.636.141-.138.312-.36.468-.541.156-.18.208-.3.312-.51.104-.209.052-.394-.026-.55-.078-.157-.692-1.668-.948-2.285-.249-.597-.502-.516-.692-.526-.178-.008-.384-.01-.591-.01-.205 0-.54.077-.822.384-.282.308-1.077 1.053-1.077 2.566s1.102 2.978 1.257 3.184c.154.204 2.168 3.31 5.253 4.641.733.317 1.307.507 1.753.649.737.234 1.407.2 1.938.122.59-.087 1.848-.756 2.11-.1447.261-.708.261-1.314.183-1.423-.079-.11-.283-.167-.595-.323z" />
+                  </svg>
+                  Share WhatsApp
+                </a>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* RSVP Message Viewer Modal */}
+      {viewingRsvpMessage && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full border border-slate-200 shadow-2xl p-6 relative text-left animate-fadeIn">
+            <button
+              onClick={() => setViewingRsvpMessage(null)}
+              className="absolute top-4 right-4 p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-all cursor-pointer border-none"
+            >
+              <X className="h-4 w-4" />
+            </button>
+            <div className="mb-4">
+              <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">RSVP Message From</span>
+              <h4 className="font-serif font-bold text-lg text-slate-900 mt-0.5">{viewingRsvpMessage.name}</h4>
+              <span className="text-xs text-slate-400 italic">Greeting Label: "{viewingRsvpMessage.greeting}"</span>
+            </div>
+            <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 italic text-slate-700 text-sm leading-relaxed whitespace-pre-wrap">
+              "{viewingRsvpMessage.message}"
+            </div>
+            <div className="mt-5 flex justify-end">
+              <button
+                onClick={() => setViewingRsvpMessage(null)}
+                className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs uppercase tracking-wider font-semibold cursor-pointer border-none"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
