@@ -895,7 +895,10 @@ export const InvitationMain: React.FC<InvitationMainProps> = ({ guest }) => {
             <h3 className="serif italic text-3xl mb-4 text-[var(--sage-light)]">Albin &amp; Stella</h3>
             <div className="w-16 h-px bg-[var(--sage-light)]/30 mx-auto my-6" />
             <p className="sans text-[10px] text-white/50 tracking-[0.2em] uppercase font-semibold">November 28, 2026 · Kochi, Kerala</p>
-            <p className="sans text-[9px] text-white/30 mt-4">© 2026 Albin &amp; Stella. Forever &amp; Always.</p>
+            <p className="sans text-[9px] text-white/30 mt-4">
+              © 2026 Albin &amp; Stella. Forever &amp; Always. ·{" "}
+              <a href="/admin" className="hover:text-[var(--sage-light)] transition-colors underline">Admin Login</a>
+            </p>
           </footer>
 
         </motion.div>
