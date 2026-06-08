@@ -1,21 +1,21 @@
-@import url("https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600&family=Jost:wght@300;400;500&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400..800;1,400..800&family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap");
 @import "tailwindcss";
 
 @layer base {
   :root {
-    /* Warm Romantic Palette */
-    --cream: #f8f3ed;
-    --warm-white: #fdfaf6;
-    --parchment: #ede8df;
-    --sage: #7a9e87;
-    --sage-light: #a8c5b0;
-    --sage-dark: #4d7a5e;
-    --dusty-rose: #c4967a;
-    --rose-light: #e8c4ae;
-    --terracotta: #b8714e;
-    --charcoal: #2c2c2c;
-    --muted-text: #7a7568;
-    --border-warm: #e0d8ce;
+    /* Eternal Elegance Palette */
+    --cream: #fff8f4;
+    --warm-white: #fff8f4;
+    --parchment: #f5ece5;
+    --sage: #d4af37;
+    --sage-light: #ffe088;
+    --sage-dark: #735c00;
+    --dusty-rose: #7a5642;
+    --rose-light: #fecdb4;
+    --terracotta: #ba1a1a;
+    --charcoal: #1f1b17;
+    --muted-text: #4d4635;
+    --border-warm: #d0c5af;
 
     --background: var(--warm-white);
     --foreground: var(--charcoal);
@@ -25,8 +25,8 @@
     --secondary-foreground: var(--charcoal);
     --muted: var(--parchment);
     --muted-foreground: var(--muted-text);
-    --accent: var(--dusty-rose);
-    --accent-foreground: #ffffff;
+    --accent: var(--sage-light);
+    --accent-foreground: var(--charcoal);
     --border: var(--border-warm);
     --card: var(--warm-white);
     --card-foreground: var(--charcoal);
@@ -39,22 +39,46 @@
   body {
     background: var(--warm-white);
     color: var(--charcoal);
-    font-family: "Jost", sans-serif;
+    font-family: "Montserrat", sans-serif;
     font-weight: 300;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
   ::selection {
     background: var(--sage-light);
-    color: #fff;
+    color: var(--charcoal);
   }
 }
 
 /* Typography */
-.serif { font-family: "Playfair Display", Georgia, serif; }
-.sans { font-family: "Jost", sans-serif; }
+.serif { font-family: "EB Garamond", Georgia, serif; }
+.sans { font-family: "Montserrat", sans-serif; }
 
 /* Scrollbar */
-::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: var(--cream); }
-::-webkit-scrollbar-thumb { background: var(--sage-light); border-radius: 2px; }
+::-webkit-scrollbar-thumb { background: var(--border-warm); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--sage-dark); }
+
+/* Custom Glassmorphism Utility */
+.glass-panel {
+  background: rgba(255, 248, 244, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+/* Floating petals animation */
+.petal {
+  position: absolute;
+  background-color: var(--rose-light);
+  border-radius: 50% 0 50% 0;
+  opacity: 0.4;
+  pointer-events: none;
+  animation: drift linear infinite;
+}
+
+@keyframes drift {
+  0% { transform: translateY(-10vh) rotate(0deg); }
+  100% { transform: translateY(110vh) rotate(360deg); }
+}
+

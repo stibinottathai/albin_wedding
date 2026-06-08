@@ -67,37 +67,35 @@ export const LiveCountdown: React.FC<LiveCountdownProps> = ({ targetDate }) => {
   }
 
   return (
-    <div className="grid grid-cols-4 gap-3 max-w-sm mx-auto sm:max-w-md my-4">
+    <div className="flex gap-4 md:gap-8 items-center justify-center text-center glass-panel px-6 py-4 md:px-8 md:py-6 rounded-xl border border-[var(--border-warm)]/30 shadow-[0_10px_40px_-10px_rgba(115,92,0,0.1)]">
       {timeItems.map((item, index) => (
-        <motion.div
-          key={item.label}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: index * 0.1, duration: 0.6 }}
-          className="bg-[var(--parchment)] rounded-2xl py-3 px-1.5 sm:py-4 sm:px-3 text-center flex flex-col items-center justify-center border border-[var(--border-warm)] relative overflow-hidden"
-        >
-          {/* Sage accent top line */}
-          <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-[var(--sage)] to-[var(--dusty-rose)]" />
-          
-          <div className="relative overflow-hidden h-9 sm:h-12 w-full flex items-center justify-center">
-            <AnimatePresence mode="popLayout">
-              <motion.span
-                key={item.value}
-                initial={{ y: 20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                exit={{ y: -20, opacity: 0 }}
-                transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                className="text-2xl sm:text-3xl font-light text-[var(--charcoal)] tracking-tight serif italic"
-              >
-                {String(item.value).padStart(2, "0")}
-              </motion.span>
-            </AnimatePresence>
-          </div>
-
-          <span className="sans text-[9px] sm:text-[10px] uppercase tracking-widest text-[var(--muted-text)] font-medium mt-1">
-            {item.label}
-          </span>
-        </motion.div>
+        <React.Fragment key={item.label}>
+          {index > 0 && <div className="w-px h-12 bg-[var(--border-warm)]/50 self-center" />}
+          <motion.div
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: index * 0.1, duration: 0.6 }}
+            className="flex flex-col min-w-[60px]"
+          >
+            <div className="relative overflow-hidden h-9 sm:h-12 w-full flex items-center justify-center">
+              <AnimatePresence mode="popLayout">
+                <motion.span
+                  key={item.value}
+                  initial={{ y: 15, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  exit={{ y: -15, opacity: 0 }}
+                  transition={{ type: "spring", stiffness: 200, damping: 18 }}
+                  className="text-3xl sm:text-4xl font-light text-[var(--primary)] tracking-tight serif"
+                >
+                  {String(item.value).padStart(2, "0")}
+                </motion.span>
+              </AnimatePresence>
+            </div>
+            <span className="sans text-[9px] sm:text-[10px] uppercase tracking-widest text-[var(--muted-text)] font-semibold mt-1">
+              {item.label}
+            </span>
+          </motion.div>
+        </React.Fragment>
       ))}
     </div>
   );
