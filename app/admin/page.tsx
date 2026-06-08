@@ -1550,7 +1550,7 @@ export default function AdminDashboard() {
                     ) : (
                       <>
                         <Plus className="h-4 w-4" />
-                        Generate Link
+                        Add Guest
                       </>
                     )}
                   </button>

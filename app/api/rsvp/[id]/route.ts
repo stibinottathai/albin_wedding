@@ -61,3 +61,27 @@ export async function GET(
     return NextResponse.json({ error: e.message }, { status: 500 });
   }
 }
+
+// DELETE /api/rsvp/[id]  — delete a guest record
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+
+    const { error } = await supabase
+      .from("guests")
+      .delete()
+      .eq("id", id);
+
+    if (error) {
+      console.error("API deleteGuest error:", error);
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (e: any) {
+    return NextResponse.json({ error: e.message }, { status: 500 });
+  }
+}

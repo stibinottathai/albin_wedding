@@ -702,16 +702,13 @@ export const updateGuest = async (guestId: string, updatedFields: Partial<Omit<G
 };
 
 export const deleteGuest = async (guestId: string): Promise<void> => {
-  if (isSupabaseConfigured) {
-    try {
-      const { error } = await supabase
-        .from("guests")
-        .delete()
-        .eq("id", guestId);
-      if (!error) return;
-    } catch (e) {
-      console.error("Supabase deleteGuest error:", e);
-    }
+  try {
+    const res = await fetch(`/api/rsvp/${guestId}`, {
+      method: "DELETE",
+    });
+    if (res.ok) return;
+  } catch (e) {
+    console.error("API deleteGuest error:", e);
   }
   const guests = mockDb.getGuests();
   const filtered = guests.filter(g => g.id !== guestId);
