@@ -83,16 +83,7 @@ export const MusicPlayer = forwardRef<MusicPlayerRef, MusicPlayerProps>(({ url }
 
   return (
     <div className="fixed bottom-24 right-6 z-50 flex items-center gap-3">
-      {/* Sound Visualizer Bars */}
-      {isPlaying && (
-        <div className="glass-panel flex items-end gap-[3px] rounded-full px-3 py-2 h-9">
-          <div className="w-[3px] bg-primary h-2 rounded-full animate-[bounce_0.8s_infinite_0.1s]"></div>
-          <div className="w-[3px] bg-primary h-4 rounded-full animate-[bounce_0.8s_infinite_0.3s]"></div>
-          <div className="w-[3px] bg-primary h-3 rounded-full animate-[bounce_0.8s_infinite_0.5s]"></div>
-          <div className="w-[3px] bg-primary h-5 rounded-full animate-[bounce_0.8s_infinite_0.2s]"></div>
-          <div className="w-[3px] bg-primary h-2 rounded-full animate-[bounce_0.8s_infinite_0.4s]"></div>
-        </div>
-      )}
+
 
       {/* Control Button */}
       <button
