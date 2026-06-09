@@ -979,7 +979,8 @@ export default function AdminDashboard() {
             const compressedBlob = await compressImage(item.file, 1920, 0.82);
 
             if (isSupabaseConfigured) {
-              const fileExt = item.file.name.split(".").pop();
+              // We now compress all images as WebP
+              const fileExt = compressedBlob.type === 'image/webp' ? 'webp' : item.file.name.split(".").pop();
               const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
               const filePath = `${fileName}`;
 
@@ -1112,7 +1113,7 @@ export default function AdminDashboard() {
         const compressedBlob = await compressImage(newStoryImageFile, 1200, 0.8);
 
         if (isSupabaseConfigured) {
-          const fileExt = newStoryImageFile.name.split(".").pop();
+          const fileExt = compressedBlob.type === 'image/webp' ? 'webp' : newStoryImageFile.name.split(".").pop();
           const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
           const filePath = `${fileName}`;
 
@@ -1274,7 +1275,7 @@ export default function AdminDashboard() {
         const compressedBlob = await compressImage(newEventImageFile, 1200, 0.8);
 
         if (isSupabaseConfigured) {
-          const fileExt = newEventImageFile.name.split(".").pop();
+          const fileExt = compressedBlob.type === 'image/webp' ? 'webp' : newEventImageFile.name.split(".").pop();
           const fileName = `event_${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
           const filePath = `${fileName}`;
 

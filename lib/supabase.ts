@@ -93,14 +93,18 @@ export async function compressImage(
 
       ctx.drawImage(img, 0, 0, width, height);
 
-      let mimeType = "image/jpeg";
-      if (file.type === "image/png" || file.type === "image/webp") {
-        mimeType = file.type;
-      }
+      // Use WebP for all compressed images for optimal size vs quality ratio
+      const mimeType = "image/webp";
 
       canvas.toBlob(
         (blob) => {
-          resolve(blob || file);
+          // Add a custom type property so the upload logic knows it's WebP now
+          if (blob) {
+            Object.defineProperty(blob, 'type', { value: mimeType });
+            resolve(blob);
+          } else {
+            resolve(file);
+          }
         },
         mimeType,
         quality
