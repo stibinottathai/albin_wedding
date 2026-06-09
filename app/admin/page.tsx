@@ -158,7 +158,7 @@ export default function AdminDashboard() {
 
   // Form states for gallery upload
   const [newImageFile, setNewImageFile] = useState<File | null>(null);
-  const [newImageFiles, setNewImageFiles] = useState<{ file: File; id: string; preview: string; alt: string }[]>([]);
+  const [newImageFiles, setNewImageFiles] = useState<{ file: File; id: string; preview: string; alt: string; uploadStatus?: "pending" | "uploading" | "success" | "error" }[]>([]);
   const [newImageUrl, setNewImageUrl] = useState("");
   const [newImageCategory, setNewImageCategory] = useState<string>("pre-wedding");
 
@@ -967,65 +967,92 @@ export default function AdminDashboard() {
 
       setUploading(true);
       try {
+        const successfulIds: string[] = [];
+        let hasError = false;
+
         for (const item of newImageFiles) {
-          let src = "";
-          // Compress image client-side to maximum 1920px (full scale for lightbox)
-          const compressedBlob = await compressImage(item.file, 1920, 0.82);
+          try {
+            setNewImageFiles(prev => prev.map(p => p.id === item.id ? { ...p, uploadStatus: "uploading" } : p));
+            
+            let src = "";
+            // Compress image client-side to maximum 1920px (full scale for lightbox)
+            const compressedBlob = await compressImage(item.file, 1920, 0.82);
 
-          if (isSupabaseConfigured) {
-            const fileExt = item.file.name.split(".").pop();
-            const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
-            const filePath = `${fileName}`;
+            if (isSupabaseConfigured) {
+              const fileExt = item.file.name.split(".").pop();
+              const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
+              const filePath = `${fileName}`;
 
-            const { error: uploadErr } = await supabase.storage
-              .from("gallery")
-              .upload(filePath, compressedBlob, {
-                cacheControl: "public, max-age=31536000, immutable",
-                contentType: item.file.type,
-                upsert: false
+              const { error: uploadErr } = await supabase.storage
+                .from("gallery")
+                .upload(filePath, compressedBlob, {
+                  cacheControl: "public, max-age=31536000, immutable",
+                  contentType: item.file.type,
+                  upsert: false
+                });
+
+              if (uploadErr) {
+                throw new Error(`Supabase Storage upload failed for ${item.file.name}: ${uploadErr.message}`);
+              }
+
+              const { data: { publicUrl } } = supabase.storage
+                .from("gallery")
+                .getPublicUrl(filePath);
+
+              src = publicUrl;
+            } else {
+              // Local fallback: convert compressed image to base64 (avoids storage quota limits)
+              src = await new Promise<string>((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(compressedBlob);
+                reader.onload = () => resolve(reader.result as string);
+                reader.onerror = (err) => reject(err);
               });
-
-            if (uploadErr) {
-              throw new Error(`Supabase Storage upload failed for ${item.file.name}: ${uploadErr.message}`);
             }
 
-            const { data: { publicUrl } } = supabase.storage
-              .from("gallery")
-              .getPublicUrl(filePath);
+            const newImage: GalleryImage = {
+              id: `gal-${Math.random().toString(36).substring(2, 9)}`,
+              src,
+              category: newImageCategory,
+              alt: item.alt.trim() || newImageAlt.trim() || `${newImageCategory} photo`,
+              createdAt: new Date().toISOString()
+            };
 
-            src = publicUrl;
-          } else {
-            // Local fallback: convert compressed image to base64 (avoids storage quota limits)
-            src = await new Promise<string>((resolve, reject) => {
-              const reader = new FileReader();
-              reader.readAsDataURL(compressedBlob);
-              reader.onload = () => resolve(reader.result as string);
-              reader.onerror = (err) => reject(err);
-            });
+            await saveGalleryImage(newImage);
+            
+            setNewImageFiles(prev => prev.map(p => p.id === item.id ? { ...p, uploadStatus: "success" } : p));
+            successfulIds.push(item.id);
+          } catch (innerErr) {
+            console.error(innerErr);
+            setNewImageFiles(prev => prev.map(p => p.id === item.id ? { ...p, uploadStatus: "error" } : p));
+            hasError = true;
           }
-
-          const newImage: GalleryImage = {
-            id: `gal-${Math.random().toString(36).substring(2, 9)}`,
-            src,
-            category: newImageCategory,
-            alt: item.alt.trim() || newImageAlt.trim() || `${newImageCategory} photo`,
-            createdAt: new Date().toISOString()
-          };
-
-          await saveGalleryImage(newImage);
         }
 
-        // Cleanup object URLs to prevent leaks
-        newImageFiles.forEach(item => URL.revokeObjectURL(item.preview));
+        // Wait briefly so user sees the success checkmarks
+        await new Promise(r => setTimeout(r, 1200));
+
+        // Cleanup object URLs for successful ones
+        newImageFiles.forEach(item => {
+          if (successfulIds.includes(item.id)) {
+            URL.revokeObjectURL(item.preview);
+          }
+        });
         
-        // Reset file form
-        setNewImageFiles([]);
-        setNewImageAlt("");
+        // Reset file form but keep errored ones
+        setNewImageFiles(prev => prev.filter(p => !successfulIds.includes(p.id)));
+
         const fileInput = document.getElementById("gallery-file-input") as HTMLInputElement;
         if (fileInput) fileInput.value = "";
 
-        setUploadSuccess(true);
-        setTimeout(() => setUploadSuccess(false), 3000);
+        if (!hasError) {
+          setNewImageAlt("");
+          setUploadSuccess(true);
+          setTimeout(() => setUploadSuccess(false), 3000);
+        } else {
+          setUploadError("Some images failed to upload. Check their status.");
+        }
+        
         loadAdminData();
       } catch (err: any) {
         console.error(err);
@@ -2593,16 +2620,36 @@ export default function AdminDashboard() {
                               <img 
                                 src={item.preview} 
                                 alt="preview" 
-                                className="w-full h-full object-cover"
+                                className={`w-full h-full object-cover transition-opacity ${item.uploadStatus === "uploading" ? "opacity-50" : ""}`}
                               />
-                              <button
-                                type="button"
-                                onClick={() => handleRemoveSelectedFile(item.id)}
-                                className="absolute top-1 right-1 bg-rose-500 hover:bg-rose-600 text-white rounded-full p-1 shadow transition-colors cursor-pointer border-none"
-                                title="Remove photo"
-                              >
-                                <X className="h-3 w-3" />
-                              </button>
+                              {(!item.uploadStatus || item.uploadStatus === "pending" || item.uploadStatus === "error") && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveSelectedFile(item.id)}
+                                  className="absolute top-1 right-1 bg-rose-500 hover:bg-rose-600 text-white rounded-full p-1 shadow transition-colors cursor-pointer border-none"
+                                  title="Remove photo"
+                                >
+                                  <X className="h-3 w-3" />
+                                </button>
+                              )}
+                              
+                              {/* Status Indicators */}
+                              {item.uploadStatus === "uploading" && (
+                                <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                                  <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                </div>
+                              )}
+                              {item.uploadStatus === "success" && (
+                                <div className="absolute inset-0 flex items-center justify-center bg-emerald-500/80">
+                                  <Check className="h-8 w-8 text-white" />
+                                </div>
+                              )}
+                              {item.uploadStatus === "error" && (
+                                <div className="absolute inset-0 flex flex-col items-center justify-center bg-rose-500/80">
+                                  <X className="h-8 w-8 text-white mb-1" />
+                                  <span className="text-[10px] text-white font-bold uppercase tracking-wider">Failed</span>
+                                </div>
+                              )}
                             </div>
                             
                             {/* Individual description input */}
@@ -2613,8 +2660,9 @@ export default function AdminDashboard() {
                                 const val = e.target.value;
                                 setNewImageFiles(prev => prev.map(p => p.id === item.id ? { ...p, alt: val } : p));
                               }}
+                              disabled={item.uploadStatus === "uploading" || item.uploadStatus === "success"}
                               placeholder="Add description..."
-                              className="w-full px-2 py-1 text-[11px] border border-slate-200 rounded mt-2 focus:outline-none focus:border-slate-400"
+                              className="w-full px-2 py-1 text-[11px] border border-slate-200 rounded mt-2 focus:outline-none focus:border-slate-400 disabled:opacity-50 disabled:bg-slate-100"
                             />
                           </div>
                         ))}
