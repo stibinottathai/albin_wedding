@@ -20,6 +20,7 @@ export interface WeddingInfo {
   brideSiblings: string;
   categories?: string; // serialized JSON array of guest categories
   galleryCategories?: string; // serialized JSON array of gallery categories
+  isWishesModerationEnabled?: boolean;
 }
 
 export interface WeddingEvent {
@@ -112,6 +113,7 @@ const DEFAULT_WEDDING_INFO: WeddingInfo = {
   brideSiblings: "Kevin & Teresa",
   categories: '["General","Family","Friends","Relatives"]',
   galleryCategories: '["pre-wedding","engagement","family","memories"]',
+  isWishesModerationEnabled: false,
 };
 
 const DEFAULT_EVENTS: WeddingEvent[] = [

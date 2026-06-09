@@ -56,11 +56,26 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Message must be 300 characters or less" }, { status: 400 });
     }
 
+    // Fetch moderation setting
+    let isModerationEnabled = false;
+    try {
+      const { data: infoData } = await supabase
+        .from("wedding_info")
+        .select("isWishesModerationEnabled")
+        .eq("id", "main")
+        .single();
+      if (infoData && infoData.isWishesModerationEnabled === true) {
+        isModerationEnabled = true;
+      }
+    } catch (err) {
+      console.error("Failed to check moderation setting:", err);
+    }
+
     const wish = {
       id: Math.random().toString(36).substring(2, 11),
       guestName: guestName.trim(),
       message: message.trim(),
-      approved: true,
+      approved: !isModerationEnabled,
       timestamp: new Date().toISOString(),
       emoji: "❤️",
     };
@@ -73,6 +88,22 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(data ?? wish, { status: 201 });
+  } catch (e: any) {
+    return NextResponse.json({ error: e.message }, { status: 500 });
+  }
+}
+
+// DELETE /api/wishes  — delete all wishes
+export async function DELETE(request: NextRequest) {
+  try {
+    const { error } = await supabase.from("wishes").delete().not("id", "is", null);
+
+    if (error) {
+      console.error("API deleteAllWishes error:", error);
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true }, { status: 200 });
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 500 });
   }

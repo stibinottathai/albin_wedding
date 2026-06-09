@@ -25,6 +25,7 @@ export const WishesWall: React.FC<{ groomName?: string; brideName?: string }> = 
   const [message, setMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState("");
   
   const [isLoading, setIsLoading] = useState(false);
@@ -86,10 +87,16 @@ export const WishesWall: React.FC<{ groomName?: string; brideName?: string }> = 
         return;
       }
 
+      const data = await res.json();
+
       setName("");
       setMessage("");
       setSubmitted(true);
-      setTimeout(() => setSubmitted(false), 5000);
+      setIsPending(data.approved === false);
+      setTimeout(() => {
+        setSubmitted(false);
+        setIsPending(false);
+      }, 5000);
       
       // Reload from start to show the new wish
       setOffset(0);
@@ -185,7 +192,7 @@ export const WishesWall: React.FC<{ groomName?: string; brideName?: string }> = 
                   className="text-sm text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-full flex items-center gap-1.5 font-medium border border-emerald-100"
                 >
                   <Check className="h-4 w-4" />
-                  {t("wishPosted") || "Successfully posted!"}
+                  {isPending ? "Submitted for approval!" : (t("wishPosted") || "Successfully posted!")}
                 </motion.div>
               ) : (
                 <div key="empty" />

@@ -888,26 +888,44 @@ export default function AdminDashboard() {
 
   // Moderation: Approve/Reject Wish
   const handleToggleWish = async (id: string, approved: boolean) => {
+    // Optimistic UI update
+    setWishes(prev => prev.map(w => w.id === id ? { ...w, approved } : w));
     try {
       await fetch(`/api/wishes/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ approved }),
       });
-      loadAdminData();
     } catch (err) {
       console.error(err);
+      loadAdminData(); // Revert on failure
     }
   };
 
   // Moderation: Delete Wish
   const handleDeleteWish = async (id: string) => {
     if (confirm("Delete this message?")) {
+      // Optimistic UI update
+      setWishes(prev => prev.filter(w => w.id !== id));
       try {
         await fetch(`/api/wishes/${id}`, { method: "DELETE" });
-        loadAdminData();
       } catch (err) {
         console.error(err);
+        loadAdminData(); // Revert on failure
+      }
+    }
+  };
+
+  // Moderation: Delete All Wishes
+  const handleDeleteAllWishes = async () => {
+    if (confirm("Are you sure you want to delete ALL wishes? This action cannot be undone.")) {
+      // Optimistic UI update
+      setWishes([]);
+      try {
+        await fetch(`/api/wishes`, { method: "DELETE" });
+      } catch (err) {
+        console.error(err);
+        loadAdminData(); // Revert on failure
       }
     }
   };
@@ -2362,6 +2380,17 @@ export default function AdminDashboard() {
         {/* Tab 3: Wishes Moderation */}
         {activeTab === "wishes" && (
           <div className="space-y-6 animate-fadeIn">
+            {wishes.length > 0 && (
+              <div className="flex justify-end">
+                <button
+                  onClick={handleDeleteAllWishes}
+                  className="px-4 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-2 transition-all shadow-sm"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Delete All Wishes
+                </button>
+              </div>
+            )}
             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden divide-y divide-slate-100">
               {wishes.length === 0 ? (
                 <div className="p-12 text-center italic text-slate-400">No wishes found.</div>
@@ -2373,6 +2402,11 @@ export default function AdminDashboard() {
                         <div className="flex items-center gap-2 mb-1.5">
                           <span className="font-serif font-bold text-slate-900">{w.guestName}</span>
                           <span className="text-xs text-slate-400">• {new Date(w.timestamp).toLocaleDateString()}</span>
+                          {!w.approved && (
+                            <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 text-[10px] font-bold uppercase tracking-wide">
+                              Pending
+                            </span>
+                          )}
                         </div>
                         <p className="text-slate-600 italic">"{w.message}"</p>
                       </div>
@@ -3658,6 +3692,21 @@ export default function AdminDashboard() {
                       onChange={(e) => handleSettingChange("videoUrl", e.target.value)}
                       className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm"
                     />
+                  </div>
+                  <div className="md:col-span-2 flex items-center justify-between bg-slate-50 p-4 rounded-xl border border-slate-100">
+                    <div>
+                      <label className="block text-sm font-bold text-slate-800">Wishes Moderation</label>
+                      <p className="text-xs text-slate-500">Require admin approval before wishes are publicly displayed.</p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={weddingInfo.isWishesModerationEnabled || false}
+                        onChange={(e) => handleSettingChange("isWishesModerationEnabled", e.target.checked)}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#d4af37]"></div>
+                    </label>
                   </div>
                 </div>
               </div>
