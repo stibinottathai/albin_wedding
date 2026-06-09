@@ -732,11 +732,6 @@ export const InvitationMain: React.FC<InvitationMainProps> = ({ guest, initialWe
           {/* ── 8. Wishes Wall ── */}
           <section className="py-24 px-6 bg-[var(--cream)]" id="well-wishes">
             <div className="max-w-4xl mx-auto">
-              <div className="text-center mb-16">
-                <p className="sans text-xs uppercase tracking-[0.25em] text-[var(--muted-text)] font-semibold mb-2">Blessings</p>
-                <h2 className="font-headline-lg text-4xl md:text-5xl text-[var(--primary)] mb-4 serif font-light">{t("wishes")}</h2>
-                <SectionDivider />
-              </div>
               <WishesWall 
                 groomName={weddingInfo?.groomName} 
                 brideName={weddingInfo?.brideName} 

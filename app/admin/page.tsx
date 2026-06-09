@@ -1549,7 +1549,7 @@ export default function AdminDashboard() {
   };
 
   // Handle setting updates locally before submit
-  const handleSettingChange = (field: keyof WeddingInfo, value: string) => {
+  const handleSettingChange = (field: keyof WeddingInfo, value: string | boolean) => {
     if (!weddingInfo) return;
     setWeddingInfo({
       ...weddingInfo,

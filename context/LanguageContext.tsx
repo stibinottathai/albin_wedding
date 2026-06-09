@@ -153,8 +153,8 @@ const translations: Translations = {
     ml: "ആശംസ അയക്കുക",
   },
   wishPosted: {
-    en: "Wish submitted! It will appear after moderation.",
-    ml: "ആശംസ അയച്ചു! പരിശോധനയ്ക്ക് ശേഷം പ്രസിദ്ധീകരിക്കുന്നതാണ്.",
+    en: "Wishes submitted! Thank you for your wishes.",
+    ml: "ആശംസ അയച്ചു! നിങ്ങളുടെ ആശംസകൾക്ക് നന്ദി.",
   },
   family: {
     en: "The Families",

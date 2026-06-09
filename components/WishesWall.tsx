@@ -15,6 +15,16 @@ interface Wish {
 
 const ITEMS_PER_PAGE = 10;
 
+function SectionDivider() {
+  return (
+    <div className="flex items-center justify-center gap-4 my-8 max-w-md mx-auto">
+      <div className="flex-1 h-[1px] bg-gradient-to-r from-transparent to-[#e5dfd1]" />
+      <Heart className="w-3.5 h-3.5 text-[#735c00] fill-[#735c00] opacity-60" />
+      <div className="flex-1 h-[1px] bg-gradient-to-l from-transparent to-[#e5dfd1]" />
+    </div>
+  );
+}
+
 export const WishesWall: React.FC<{ groomName?: string; brideName?: string }> = ({ 
   groomName = "Albin", 
   brideName = "Sandra" 
@@ -71,7 +81,20 @@ export const WishesWall: React.FC<{ groomName?: string; brideName?: string }> = 
     e.preventDefault();
     setError("");
     if (!name.trim() || !message.trim()) return;
-    if (name.trim().length > 20 || message.trim().length > 300) return;
+    if (name.trim().length > 20 || message.trim().length > 200) return;
+
+    // Optimistic UI update
+    const optimisticWish: Wish = {
+      id: Math.random().toString(36).substring(2, 11),
+      guestName: name.trim(),
+      message: message.trim(),
+      approved: true, // Optimistically show it
+      timestamp: new Date().toISOString()
+    };
+    
+    // Add to top of list immediately
+    setWishes(prev => [optimisticWish, ...prev]);
+    setTotal(prev => prev + 1);
 
     setIsSubmitting(true);
     try {
@@ -91,133 +114,32 @@ export const WishesWall: React.FC<{ groomName?: string; brideName?: string }> = 
 
       setName("");
       setMessage("");
-      setSubmitted(true);
+      // Update optimistic wish with actual data
+      setWishes(prev => prev.map(w => 
+        w.id === optimisticWish.id ? { ...w, ...data } : w
+      ));
       setIsPending(data.approved === false);
+      
+      // Delay showing the success text until after loading finishes
       setTimeout(() => {
         setSubmitted(false);
         setIsPending(false);
       }, 5000);
       
-      // Reload from start to show the new wish
-      setOffset(0);
-      await loadWishes(0, false);
     } catch (err) {
       console.error(err);
       setError("Failed to submit wish. Please try again.");
     } finally {
       setIsSubmitting(false);
+      if (!error) {
+        setSubmitted(true);
+      }
     }
   };
 
   return (
     <div className="w-full max-w-4xl mx-auto px-4 py-8">
       
-      {/* Redesigned Wishes Submitting Form */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
-        transition={{ duration: 0.6 }}
-        className="glass-panel p-6 sm:p-8 rounded-2xl border border-[#c59b27]/30 shadow-xl relative overflow-hidden mb-12 bg-white/40 backdrop-blur-md max-w-2xl mx-auto"
-      >
-        <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-[#c59b27]/10 to-transparent rounded-bl-full" />
-        <div className="absolute bottom-0 left-0 w-32 h-32 bg-gradient-to-tr from-[#735c00]/10 to-transparent rounded-tr-full" />
-        
-        <div className="text-center mb-6">
-          <Heart className="w-6 h-6 mx-auto text-[#c59b27] mb-2" />
-          <h3 className="font-serif italic text-2xl text-[#1c1a17] font-bold">
-            {t("sendWish") || "Bless the Couple"}
-          </h3>
-          <p className="text-sm text-[#4d4635] mt-2">Leave a special message for {groomName} and {brideName}</p>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-4 relative z-10">
-          <div>
-            <div className="flex justify-between items-center mb-1">
-              <label className="block text-xs uppercase tracking-wider text-[#4d4635] font-semibold">
-                {t("yourName") || "Your Name"}
-              </label>
-              <span className={`text-[10px] ${name.length > 18 ? "text-amber-600 font-bold" : "text-[#4d4635]/60"}`}>
-                {name.length}/20
-              </span>
-            </div>
-            <input
-              type="text"
-              required
-              maxLength={20}
-              disabled={isSubmitting}
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. John Doe"
-              className="w-full px-4 py-3 rounded-xl border border-[#e5dfd1] bg-white/70 focus:outline-none focus:ring-2 focus:ring-[#735c00]/40 focus:border-[#735c00] text-sm transition-all shadow-sm"
-            />
-          </div>
-
-          <div>
-            <div className="flex justify-between items-center mb-1">
-              <label className="block text-xs uppercase tracking-wider text-[#4d4635] font-semibold">
-                {t("wishesLabel") || "Your Wish"}
-              </label>
-              <span className={`text-[10px] ${message.length > 280 ? "text-amber-600 font-bold" : "text-[#4d4635]/60"}`}>
-                {message.length}/300
-              </span>
-            </div>
-            <textarea
-              required
-              rows={4}
-              maxLength={300}
-              disabled={isSubmitting}
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              placeholder={t("writeWishMsg") || "Write your warmest wishes here..."}
-              className="w-full px-4 py-3 rounded-xl border border-[#e5dfd1] bg-white/70 focus:outline-none focus:ring-2 focus:ring-[#735c00]/40 focus:border-[#735c00] text-sm transition-all resize-none shadow-sm"
-            />
-          </div>
-
-          {error && (
-            <p className="text-xs text-red-500 bg-red-50 border border-red-100 rounded-lg px-3 py-2 text-center">
-              {error}
-            </p>
-          )}
-
-          {/* Form Actions */}
-          <div className="flex items-center justify-between pt-4">
-            <AnimatePresence mode="wait">
-              {submitted ? (
-                <motion.div
-                  key="success"
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0 }}
-                  className="text-sm text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-full flex items-center gap-1.5 font-medium border border-emerald-100"
-                >
-                  <Check className="h-4 w-4" />
-                  {isPending ? "Submitted for approval!" : (t("wishPosted") || "Successfully posted!")}
-                </motion.div>
-              ) : (
-                <div key="empty" />
-              )}
-            </AnimatePresence>
-
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              style={{ backgroundColor: "#735c00", color: "#fff" }}
-              className="flex items-center gap-2 px-6 py-2.5 rounded-full font-semibold text-xs uppercase tracking-wider transition-all hover:opacity-90 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg ml-auto"
-            >
-              {isSubmitting ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <>
-                  {t("postWish") || "Send Wish"}
-                  <Send className="h-3.5 w-3.5" />
-                </>
-              )}
-            </button>
-          </div>
-        </form>
-      </motion.div>
-
       {/* Wishes Display Wall */}
       <div className="relative">
         <div className="text-center mb-8">
@@ -296,7 +218,120 @@ export const WishesWall: React.FC<{ groomName?: string; brideName?: string }> = 
           </div>
         )}
       </div>
-    </div>
+
+      <div className="text-center mb-10 mt-20">
+        <p className="sans text-xs uppercase tracking-[0.25em] text-[#4d4635] font-semibold mb-2">Blessings</p>
+        <h2 className="font-headline-lg text-4xl md:text-5xl text-[#735c00] mb-4 serif font-light">{t("wishes") || "Wishes Wall"}</h2>
+        <SectionDivider />
+      </div>
+
+      {/* Redesigned Wishes Submitting Form */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.6 }}
+        className="glass-panel p-6 sm:p-8 rounded-2xl border border-[#c59b27]/30 shadow-xl relative overflow-hidden mt-12 bg-white/40 backdrop-blur-md max-w-2xl mx-auto"
+      >
+        <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-[#c59b27]/10 to-transparent rounded-bl-full" />
+        <div className="absolute bottom-0 left-0 w-32 h-32 bg-gradient-to-tr from-[#735c00]/10 to-transparent rounded-tr-full" />
+        
+        <div className="text-center mb-6">
+          <Heart className="w-6 h-6 mx-auto text-[#c59b27] mb-2" />
+          <h3 className="font-serif italic text-2xl text-[#1c1a17] font-bold">
+            {t("sendWish") || "Bless the Couple"}
+          </h3>
+          <p className="text-sm text-[#4d4635] mt-2">Leave a special message for {groomName} and {brideName}</p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4 relative z-10">
+          <div>
+            <div className="flex justify-between items-center mb-1">
+              <label className="block text-xs uppercase tracking-wider text-[#4d4635] font-semibold">
+                {t("yourName") || "Your Name"}
+              </label>
+              <span className={`text-[10px] ${name.length > 18 ? "text-amber-600 font-bold" : "text-[#4d4635]/60"}`}>
+                {name.length}/20
+              </span>
+            </div>
+            <input
+              type="text"
+              required
+              maxLength={20}
+              disabled={isSubmitting}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="e.g. John Doe"
+              className="w-full px-4 py-3 rounded-xl border border-[#e5dfd1] bg-white/70 focus:outline-none focus:ring-2 focus:ring-[#735c00]/40 focus:border-[#735c00] text-sm transition-all shadow-sm"
+            />
+          </div>
+
+          <div>
+            <div className="flex justify-between items-center mb-1">
+              <label className="block text-xs uppercase tracking-wider text-[#4d4635] font-semibold">
+                {t("wishesLabel") || "Your Wish"}
+              </label>
+              <span className={`text-[10px] ${message.length > 180 ? "text-amber-600 font-bold" : "text-[#4d4635]/60"}`}>
+                {message.length}/200
+              </span>
+            </div>
+            <textarea
+              required
+              rows={4}
+              maxLength={200}
+              disabled={isSubmitting}
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              placeholder={t("writeWishMsg") || "Write your warmest wishes here..."}
+              className="w-full px-4 py-3 rounded-xl border border-[#e5dfd1] bg-white/70 focus:outline-none focus:ring-2 focus:ring-[#735c00]/40 focus:border-[#735c00] text-sm transition-all resize-none shadow-sm"
+            />
+          </div>
+
+          {error && (
+            <p className="text-xs text-red-500 bg-red-50 border border-red-100 rounded-lg px-3 py-2 text-center">
+              {error}
+            </p>
+          )}
+
+          {/* Form Actions */}
+          <div className="flex items-center justify-between pt-4">
+            <AnimatePresence mode="wait">
+              {submitted ? (
+                <motion.div
+                  key="success"
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0 }}
+                  className="text-sm text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-full flex items-center gap-1.5 font-medium border border-emerald-100"
+                >
+                  <Check className="h-4 w-4" />
+                  {isPending ? "Wishes submitted! Thank you for your wishes." : (t("wishPosted") || "Successfully posted!")}
+                </motion.div>
+              ) : (
+                <div key="empty" />
+              )}
+            </AnimatePresence>
+
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              style={{ backgroundColor: "#735c00", color: "#fff" }}
+              className="flex items-center gap-2 px-6 py-2.5 rounded-full font-semibold text-xs uppercase tracking-wider transition-all hover:opacity-90 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg ml-auto"
+            >
+              {isSubmitting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <>
+                  {t("postWish") || "Send Wish"}
+                  <Send className="h-3.5 w-3.5" />
+                </>
+              )}
+            </button>
+          </div>
+        </form>
+      </motion.div>
+
+          </div>
   );
 };
 export default WishesWall;

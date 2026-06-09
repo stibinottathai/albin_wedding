@@ -52,8 +52,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Name must be 20 characters or less" }, { status: 400 });
     }
 
-    if (message.length > 300) {
-      return NextResponse.json({ error: "Message must be 300 characters or less" }, { status: 400 });
+    if (message.length > 200) {
+      return NextResponse.json({ error: "Message must be 200 characters or less" }, { status: 400 });
     }
 
     // Fetch moderation setting
