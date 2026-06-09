@@ -877,11 +877,13 @@ export default function AdminDashboard() {
   // Delete Guest Action
   const handleDeleteGuest = async (id: string) => {
     if (confirm("Are you sure you want to delete this guest?")) {
+      // Optimistic UI update
+      setGuests(prev => prev.filter(g => g.id !== id));
       try {
         await deleteGuest(id);
-        loadAdminData();
       } catch (err) {
         console.error(err);
+        loadAdminData(); // Revert on failure
       }
     }
   };
@@ -1321,6 +1323,8 @@ export default function AdminDashboard() {
 
   const handleDeleteStory = async (id: string, imageUrl: string) => {
     if (confirm("Are you sure you want to delete this story milestone?")) {
+      // Optimistic UI update
+      setStoryMilestones(prev => prev.filter(story => story.id !== id));
       try {
         await deleteStory(id);
 
@@ -1331,9 +1335,9 @@ export default function AdminDashboard() {
             await supabase.storage.from("stories").remove([fileName]);
           }
         }
-        loadAdminData();
       } catch (err) {
         console.error("Failed to delete story:", err);
+        loadAdminData(); // Revert on failure
       }
     }
   };
@@ -1508,6 +1512,8 @@ export default function AdminDashboard() {
 
   const handleDeleteEvent = async (id: string, imageUrl: string) => {
     if (confirm("Are you sure you want to delete this event?")) {
+      // Optimistic UI update
+      setEvents(prev => prev.filter(e => e.id !== id));
       try {
         await deleteEvent(id);
 
@@ -1518,9 +1524,9 @@ export default function AdminDashboard() {
             await supabase.storage.from("gallery").remove([fileName]);
           }
         }
-        loadAdminData();
       } catch (err) {
         console.error("Failed to delete event:", err);
+        loadAdminData(); // Revert on failure
       }
     }
   };
