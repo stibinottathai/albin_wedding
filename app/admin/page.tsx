@@ -87,6 +87,8 @@ export default function AdminDashboard() {
   const [events, setEvents] = useState<WeddingEvent[]>([]);
   const [faqs, setFaqs] = useState<FaqItem[]>([]);
   const [deletingImageId, setDeletingImageId] = useState<string | null>(null);
+  const [selectedImages, setSelectedImages] = useState<string[]>([]);
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
   
   // FAQ form states
   const [editingFaqId, setEditingFaqId] = useState<string | null>(null);
@@ -1083,6 +1085,85 @@ export default function AdminDashboard() {
         setGalleryImages(prev => prev.filter(img => img.id !== id));
       } catch (err) {
         console.error("Failed to delete image:", err);
+      } finally {
+        setDeletingImageId(null);
+      }
+    }
+  };
+
+  // Gallery: Delete all photos
+  const handleDeleteAllGalleryImages = async () => {
+    if (galleryImages.length === 0) return;
+    if (confirm("Are you ABSOLUTELY sure you want to delete ALL photos from the gallery? This action cannot be undone.")) {
+      setDeletingImageId("all");
+      try {
+        // Delete all records from database sequentially to avoid overwhelming
+        for (const img of galleryImages) {
+          await deleteGalleryImage(img.id);
+        }
+
+        // Delete all from Supabase storage in one batch
+        if (isSupabaseConfigured) {
+          const filesToRemove = galleryImages
+            .map(img => {
+              if (img.src.includes("/storage/v1/object/public/gallery/")) {
+                return img.src.split("/gallery/").pop();
+              }
+              return null;
+            })
+            .filter(Boolean) as string[];
+            
+          if (filesToRemove.length > 0) {
+            await supabase.storage.from("gallery").remove(filesToRemove);
+          }
+        }
+        
+        // Optimistically update the UI
+        setGalleryImages([]);
+      } catch (err) {
+        console.error("Failed to delete all images:", err);
+        alert("Failed to delete some images. Please refresh and try again.");
+      } finally {
+        setDeletingImageId(null);
+      }
+    }
+  };
+
+  // Gallery: Delete selected photos
+  const handleDeleteSelectedImages = async () => {
+    if (selectedImages.length === 0) return;
+    if (confirm(`Are you sure you want to delete ${selectedImages.length} selected photos?`)) {
+      setDeletingImageId("selected");
+      try {
+        // Delete records from database sequentially
+        for (const id of selectedImages) {
+          await deleteGalleryImage(id);
+        }
+
+        // Delete from Supabase storage in one batch
+        if (isSupabaseConfigured) {
+          const filesToRemove = galleryImages
+            .filter(img => selectedImages.includes(img.id))
+            .map(img => {
+              if (img.src.includes("/storage/v1/object/public/gallery/")) {
+                return img.src.split("/gallery/").pop();
+              }
+              return null;
+            })
+            .filter(Boolean) as string[];
+            
+          if (filesToRemove.length > 0) {
+            await supabase.storage.from("gallery").remove(filesToRemove);
+          }
+        }
+        
+        // Optimistically update the UI
+        setGalleryImages(prev => prev.filter(img => !selectedImages.includes(img.id)));
+        setSelectedImages([]);
+        setIsSelectionMode(false);
+      } catch (err) {
+        console.error("Failed to delete selected images:", err);
+        alert("Failed to delete some images. Please refresh and try again.");
       } finally {
         setDeletingImageId(null);
       }
@@ -2703,7 +2784,58 @@ export default function AdminDashboard() {
 
             {/* List of current images */}
             <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-200">
-              <h3 className="font-serif font-bold text-lg text-slate-900 mb-6 border-b pb-2">Gallery Photos ({galleryImages.length})</h3>
+              <div className="flex flex-wrap items-center justify-between gap-4 mb-6 border-b pb-2">
+                <h3 className="font-serif font-bold text-lg text-slate-900">Gallery Photos ({galleryImages.length})</h3>
+                {galleryImages.length > 0 && (
+                  <div className="flex gap-2 items-center">
+                    {isSelectionMode ? (
+                      <>
+                        <button
+                          onClick={() => {
+                            if (selectedImages.length === displayedGalleryImages.length) {
+                              setSelectedImages([]);
+                            } else {
+                              setSelectedImages(displayedGalleryImages.map(img => img.id));
+                            }
+                          }}
+                          className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-[10px] uppercase tracking-wider font-bold transition-all cursor-pointer"
+                        >
+                          {selectedImages.length === displayedGalleryImages.length ? "Deselect All" : "Select All"}
+                        </button>
+                        <button
+                          onClick={() => { setIsSelectionMode(false); setSelectedImages([]); }}
+                          className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-[10px] uppercase tracking-wider font-bold transition-all cursor-pointer"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={handleDeleteSelectedImages}
+                          disabled={selectedImages.length === 0 || deletingImageId !== null}
+                          className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-500 hover:bg-rose-600 text-white rounded-lg text-[10px] uppercase tracking-wider font-bold transition-all cursor-pointer disabled:opacity-50"
+                        >
+                          <Trash2 className="h-3 w-3" /> Delete ({selectedImages.length})
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <button
+                          onClick={() => setIsSelectionMode(true)}
+                          className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-[10px] uppercase tracking-wider font-bold transition-all cursor-pointer"
+                        >
+                          Select Photos
+                        </button>
+                        <button
+                          onClick={handleDeleteAllGalleryImages}
+                          disabled={deletingImageId !== null}
+                          className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg text-[10px] uppercase tracking-wider font-bold transition-all cursor-pointer disabled:opacity-50"
+                        >
+                          <Trash2 className="h-3 w-3" /> Delete All
+                        </button>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
 
               {galleryImages.length === 0 ? (
                 <div className="text-center py-12 text-slate-400 italic">No photos in the gallery. Add some above!</div>
@@ -2741,17 +2873,36 @@ export default function AdminDashboard() {
                   ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                       {displayedGalleryImages.map((img) => (
-                        <div key={img.id} className="group relative bg-slate-50 border border-slate-200 rounded-xl overflow-hidden shadow-sm flex flex-col justify-between">
+                        <div 
+                          key={img.id} 
+                          className={`group relative bg-slate-50 border rounded-xl overflow-hidden shadow-sm flex flex-col justify-between transition-all ${isSelectionMode ? 'cursor-pointer hover:border-slate-400' : 'border-slate-200'} ${selectedImages.includes(img.id) ? 'border-slate-800 ring-2 ring-slate-800' : ''}`}
+                          onClick={() => {
+                            if (isSelectionMode) {
+                              setSelectedImages(prev => prev.includes(img.id) ? prev.filter(i => i !== img.id) : [...prev, img.id]);
+                            }
+                          }}
+                        >
                           {/* Image Thumbnail */}
                           <div className="aspect-video relative overflow-hidden bg-slate-200">
                             <img 
                               src={img.src} 
                               alt={img.alt} 
-                              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                              className={`w-full h-full object-cover transition-transform duration-300 ${isSelectionMode && selectedImages.includes(img.id) ? "scale-105 opacity-70" : "group-hover:scale-105"}`}
                             />
-                            <span className="absolute top-2 left-2 bg-slate-900/80 backdrop-blur-sm text-white px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider">
-                              {img.category}
-                            </span>
+                            
+                            {isSelectionMode && (
+                              <div className="absolute top-2 right-2 z-10">
+                                <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-colors ${selectedImages.includes(img.id) ? "bg-slate-900 border-slate-900" : "bg-white/50 border-white"}`}>
+                                  {selectedImages.includes(img.id) && <Check className="w-3 h-3 text-white" />}
+                                </div>
+                              </div>
+                            )}
+
+                            {!isSelectionMode && (
+                              <span className="absolute top-2 left-2 bg-slate-900/80 backdrop-blur-sm text-white px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider">
+                                {img.category}
+                              </span>
+                            )}
                           </div>
 
                           {/* Info and Actions */}
@@ -2765,18 +2916,20 @@ export default function AdminDashboard() {
                                 {img.id.startsWith("gal-") && img.id.length < 15 ? "Seeded" : "Uploaded"}
                               </span>
                               
-                              <button
-                                onClick={() => handleDeleteImage(img.id, img.src)}
-                                disabled={deletingImageId === img.id}
-                                className="text-rose-500 hover:text-rose-700 disabled:text-rose-300 p-1 hover:bg-rose-50 disabled:bg-transparent rounded transition-colors cursor-pointer disabled:cursor-not-allowed"
-                                title="Delete Image"
-                              >
-                                {deletingImageId === img.id ? (
-                                  <div className="w-4 h-4 border-2 border-rose-500 border-t-transparent rounded-full animate-spin" />
-                                ) : (
-                                  <Trash2 className="h-4 w-4" />
-                                )}
-                              </button>
+                              {!isSelectionMode && (
+                                <button
+                                  onClick={() => handleDeleteImage(img.id, img.src)}
+                                  disabled={deletingImageId === img.id}
+                                  className="text-rose-500 hover:text-rose-700 disabled:text-rose-300 p-1 hover:bg-rose-50 disabled:bg-transparent rounded transition-colors cursor-pointer disabled:cursor-not-allowed"
+                                  title="Delete Image"
+                                >
+                                  {deletingImageId === img.id ? (
+                                    <div className="w-4 h-4 border-2 border-rose-500 border-t-transparent rounded-full animate-spin" />
+                                  ) : (
+                                    <Trash2 className="h-4 w-4" />
+                                  )}
+                                </button>
+                              )}
                             </div>
                           </div>
                         </div>

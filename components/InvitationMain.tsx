@@ -1014,7 +1014,7 @@ export const InvitationMain: React.FC<InvitationMainProps> = ({ guest, initialWe
             </p>
             <p className="sans text-[9px] text-white/30 mt-4">
               © {new Date().getFullYear()} {weddingInfo.groomName} &amp; {weddingInfo.brideName}. Forever &amp; Always. ·{" "}
-              <a href="/admin" className="hover:text-[var(--sage-light)] transition-colors underline">Admin Login</a>
+              <a href="/admin" className="text-[11px] font-medium hover:text-[var(--sage-light)] transition-colors underline">Admin Login</a>
             </p>
             
             {/* Developer Contact Link */}
