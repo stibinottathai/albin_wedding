@@ -750,7 +750,6 @@ export const InvitationMain: React.FC<InvitationMainProps> = ({ guest, initialWe
               <div className="relative z-10" id="rsvp-container">
                 <div className="text-center mb-10">
                   <h2 className="font-headline-lg text-4xl text-[var(--primary)] mb-2 serif font-light">RSVP</h2>
-                  <p className="sans text-[10px] text-[var(--muted-text)] tracking-[0.25em] uppercase font-bold">{t("rsvpSub")}</p>
                 </div>
 
                 {rsvpSuccess ? (
