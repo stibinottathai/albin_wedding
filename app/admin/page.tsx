@@ -1050,7 +1050,9 @@ export default function AdminDashboard() {
             await supabase.storage.from("gallery").remove([fileName]);
           }
         }
-        loadAdminData();
+        
+        // Optimistically update the UI instead of reloading all admin data
+        setGalleryImages(prev => prev.filter(img => img.id !== id));
       } catch (err) {
         console.error("Failed to delete image:", err);
       } finally {
