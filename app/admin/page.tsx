@@ -1642,7 +1642,35 @@ export default function AdminDashboard() {
           <div className="flex-1 p-6 md:p-10 overflow-y-auto">
 
         {/* Tab 1: Analytics */}
-        {activeTab === "analytics" && analytics && (
+        {activeTab === "analytics" && (
+          !analytics ? (
+            <div className="space-y-8">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 animate-pulse">
+                    <div className="h-3 bg-slate-200 rounded-full w-24 mb-4"></div>
+                    <div className="h-8 bg-slate-200 rounded-lg w-16 mb-1"></div>
+                  </div>
+                ))}
+              </div>
+              <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 max-w-md animate-pulse">
+                <div className="h-6 bg-slate-200 rounded-lg w-32 mb-6"></div>
+                <div className="space-y-6">
+                  {[1, 2, 3].map((j) => (
+                    <div key={j}>
+                      <div className="flex justify-between mb-2">
+                        <div className="h-4 bg-slate-200 rounded w-20"></div>
+                        <div className="h-4 bg-slate-200 rounded w-10"></div>
+                      </div>
+                      <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                        <div className="h-full bg-slate-200 rounded-full w-full"></div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          ) : (
           <div className="space-y-8 animate-fadeIn">
             {/* Stat Cards Grid */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
@@ -1704,6 +1732,7 @@ export default function AdminDashboard() {
               </div>
             </div>
           </div>
+          )
         )}
 
         {/* Tab RSVP: RSVP Responses */}
