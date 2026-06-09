@@ -398,28 +398,45 @@ export default function AdminDashboard() {
   // Load Admin Data
   const loadAdminData = async () => {
     try {
-      const info = await getWeddingInfo();
+      const [
+        info,
+        guestRes,
+        wishesRes,
+        stats,
+        galleryList,
+        storiesList,
+        eventsList,
+        faqsList
+      ] = await Promise.all([
+        getWeddingInfo(),
+        fetch("/api/rsvp"),
+        fetch("/api/wishes?all=true"),
+        getAnalytics(),
+        getGalleryImages(),
+        getStories(),
+        getEvents(),
+        getFaqs()
+      ]);
+
       setWeddingInfo(info);
-      // Load guests via API route to bypass RLS
-      const guestRes = await fetch("/api/rsvp");
+
+      // Resolve JSON parsing sequentially but it's very fast
       const guestList = guestRes.ok ? await guestRes.json() : await getGuests();
       setGuests(Array.isArray(guestList) ? guestList : []);
-      const wishesRes = await fetch("/api/wishes?all=true");
+
       const wishesResult = wishesRes.ok ? await wishesRes.json() : null;
       const wishesList = wishesResult && Array.isArray(wishesResult.data) ? wishesResult.data : [];
       setWishes(wishesList);
-      const stats = await getAnalytics();
+
       setAnalytics(stats);
-      const galleryList = await getGalleryImages();
       setGalleryImages(Array.isArray(galleryList) ? galleryList : []);
-      const storiesList = await getStories();
+      
       setStoryMilestones(Array.isArray(storiesList) ? storiesList : []);
       if (Array.isArray(storiesList)) {
         setNewStoryOrderIndex(storiesList.length + 1);
       }
-      const eventsList = await getEvents();
+      
       setEvents(Array.isArray(eventsList) ? eventsList : []);
-      const faqsList = await getFaqs();
       setFaqs(Array.isArray(faqsList) ? faqsList : []);
     } catch (err) {
       console.error("Failed to load admin dashboard data:", err);
