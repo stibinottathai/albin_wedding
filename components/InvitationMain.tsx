@@ -703,9 +703,9 @@ export const InvitationMain: React.FC<InvitationMainProps> = ({ guest, initialWe
                       </div>
                     </div>
 
-                    <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(weddingInfo.locationAddress)}`}
+                    <a href={weddingInfo.googleMapEmbedUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(weddingInfo.locationAddress)}`}
                       target="_blank" rel="noopener noreferrer"
-                      className="mt-8 flex items-center justify-center gap-2 bg-[var(--primary)] text-white rounded py-3 sans text-[10px] uppercase tracking-widest hover:bg-[var(--primary-container)] hover:text-[var(--charcoal)] transition-colors duration-300 w-full font-semibold shadow-sm">
+                      className="mt-8 flex items-center justify-center gap-2 bg-[var(--primary)] text-white rounded-full px-8 py-2.5 sans text-[10px] uppercase tracking-widest hover:bg-[var(--primary-container)] hover:text-[var(--charcoal)] transition-colors duration-300 w-fit mx-auto font-semibold shadow-sm">
                       <ExternalLink className="w-3.5 h-3.5" />
                       {t("viewMap")}
                     </a>
