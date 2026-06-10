@@ -304,13 +304,8 @@ export default function AdminDashboard() {
           return;
         }
         if (data?.user) {
-          if (data.user.email === "stibinaugustine3047@gmail.com") {
-            setUser(data.user);
-            setIsAuthenticated(true);
-          } else {
-            setAuthError("Unauthorized email address.");
-            await supabase.auth.signOut();
-          }
+          setUser(data.user);
+          setIsAuthenticated(true);
         }
       } catch (err: any) {
         setAuthError(err.message || "Sign in failed.");
@@ -354,13 +349,8 @@ export default function AdminDashboard() {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.user) {
-          if (session.user.email === "stibinaugustine3047@gmail.com") {
-            setUser(session.user);
-            setIsAuthenticated(true);
-          } else {
-            setAuthError(`Unauthorized email: ${session.user.email}`);
-            await supabase.auth.signOut();
-          }
+          setUser(session.user);
+          setIsAuthenticated(true);
         }
       } catch (err) {
         console.error("Auth check failed:", err);
@@ -373,16 +363,9 @@ export default function AdminDashboard() {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (session?.user) {
-        if (session.user.email === "stibinaugustine3047@gmail.com") {
-          setUser(session.user);
-          setIsAuthenticated(true);
-          setAuthError("");
-        } else {
-          setAuthError(`Unauthorized email: ${session.user.email}`);
-          setIsAuthenticated(false);
-          setUser(null);
-          await supabase.auth.signOut();
-        }
+        setUser(session.user);
+        setIsAuthenticated(true);
+        setAuthError("");
       } else {
         setUser(null);
         setIsAuthenticated(false);
