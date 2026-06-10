@@ -629,7 +629,7 @@ export const InvitationMain: React.FC<InvitationMainProps> = ({ guest, initialWe
                         <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
                         <div className="absolute bottom-3 left-4">
                           <span className="bg-[var(--cream)] text-[var(--primary)] sans text-[9px] uppercase tracking-widest px-2.5 py-1 rounded-full font-bold shadow-sm">
-                            {ev.date}
+                            {ev.date.includes('-') ? `${ev.date.split('-')[2]}/${ev.date.split('-')[1]}/${ev.date.split('-')[0].slice(-2)}` : ev.date}
                           </span>
                         </div>
                       </div>
