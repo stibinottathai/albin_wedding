@@ -49,7 +49,7 @@ function ParallaxHero({
   const bgY = useTransform(scrollYProgress, [0, 1], ["0%", "25%"]);
 
   return (
-    <section ref={ref} className="relative min-h-[100svh] flex items-center justify-center overflow-hidden py-24 md:py-28 scroll-mt-24" id="home">
+    <section ref={ref} className="relative min-h-[100svh] flex items-center justify-center overflow-hidden py-16 md:py-28 scroll-mt-24" id="home">
       {/* Background Image with Parallax */}
       <motion.div style={{ y: bgY }} className="absolute inset-0 scale-[1.12] z-0">
         <Image
@@ -558,11 +558,11 @@ export const InvitationMain: React.FC<InvitationMainProps> = ({ guest, initialWe
           />
 
           {/* ── 4. Our Story Section (Timeline with Grayscale Hover Effects) ── */}
-          <section className="py-24 px-6 bg-[var(--cream)] relative overflow-hidden" id="our-story">
+          <section className="py-14 md:py-24 px-6 bg-[var(--cream)] relative overflow-hidden" id="our-story">
             {/* Subtle decorative background blur */}
             <div className="absolute top-0 right-0 w-80 h-80 bg-[var(--rose-light)]/15 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
 
-            <div className="max-w-[800px] mx-auto text-center mb-20">
+            <div className="max-w-[800px] mx-auto text-center mb-12 md:mb-20">
               <p className="sans text-xs uppercase tracking-[0.25em] text-[var(--muted-text)] font-semibold mb-2">Our Journey</p>
               <h2 className="font-headline-lg text-4xl md:text-5xl text-[var(--primary)] mb-4 serif font-light">{t("ourStory")}</h2>
               <SectionDivider />
@@ -626,9 +626,9 @@ export const InvitationMain: React.FC<InvitationMainProps> = ({ guest, initialWe
           </section>
 
           {/* ── 5. The Celebration Section (Events with Premium Card layout) ── */}
-          <section className="py-24 px-6 bg-[var(--surface-container-low)] relative" id="events">
+          <section className="py-14 md:py-24 px-6 bg-[var(--surface-container-low)] relative" id="events">
             <div className="max-w-[1200px] mx-auto">
-              <div className="text-center mb-16">
+              <div className="text-center mb-10 md:mb-16">
                 <p className="sans text-xs uppercase tracking-[0.25em] text-[var(--muted-text)] font-semibold mb-2">The Celebration</p>
                 <h2 className="font-headline-lg text-4xl md:text-5xl text-[var(--primary)] mb-4 serif font-light">{t("schedule")}</h2>
                 <SectionDivider />
@@ -698,7 +698,7 @@ export const InvitationMain: React.FC<InvitationMainProps> = ({ guest, initialWe
 
 
           {/* ── 6. Venue Section — Immersive Map + Details ── */}
-          <section className="py-24 px-6 bg-[var(--cream)] relative overflow-hidden" id="venue">
+          <section className="py-14 md:py-24 px-6 bg-[var(--cream)] relative overflow-hidden" id="venue">
             {/* Decorative watercolor blurs */}
             <div className="absolute -top-40 -left-40 w-96 h-96 bg-[var(--rose-light)]/15 rounded-full blur-[100px] pointer-events-none" />
             <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-[var(--primary-container)]/12 rounded-full blur-[100px] pointer-events-none" />
@@ -711,7 +711,7 @@ export const InvitationMain: React.FC<InvitationMainProps> = ({ guest, initialWe
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.8 }}
-                className="text-center mb-16"
+                className="text-center mb-10 md:mb-16"
               >
                 <p className="sans text-xs uppercase tracking-[0.25em] text-[var(--muted-text)] font-semibold mb-2">The Location</p>
                 <h2 className="font-headline-lg text-4xl md:text-5xl text-[var(--primary)] mb-4 serif font-light">{t("venue")}</h2>
@@ -872,9 +872,9 @@ export const InvitationMain: React.FC<InvitationMainProps> = ({ guest, initialWe
           </section>
 
           {/* ── 7. Captured Moments (Gallery) ── */}
-          <section className="py-24 px-6 bg-[var(--surface-container-low)]" id="gallery">
+          <section className="py-14 md:py-24 px-6 bg-[var(--surface-container-low)]" id="gallery">
             <div className="max-w-6xl mx-auto">
-              <div className="text-center mb-16">
+              <div className="text-center mb-10 md:mb-16">
                 <p className="sans text-xs uppercase tracking-[0.25em] text-[var(--muted-text)] font-semibold mb-2">Moments</p>
                 <h2 className="font-headline-lg text-4xl md:text-5xl text-[var(--primary)] mb-4 serif font-light">{t("gallery")}</h2>
                 <SectionDivider />
@@ -884,7 +884,7 @@ export const InvitationMain: React.FC<InvitationMainProps> = ({ guest, initialWe
           </section>
 
           {/* ── 8. Wishes Wall ── */}
-          <section className="py-24 px-6 bg-[var(--cream)]" id="well-wishes">
+          <section className="py-14 md:py-24 px-6 bg-[var(--cream)]" id="well-wishes">
             <div className="max-w-4xl mx-auto">
               <WishesWall 
                 groomName={weddingInfo?.groomName} 
@@ -895,7 +895,7 @@ export const InvitationMain: React.FC<InvitationMainProps> = ({ guest, initialWe
 
           {/* ── 9. RSVP Section (Stitch Style Adaptations) ── */}
           {guest && (
-            <section className="py-24 px-6 bg-[var(--surface-container-low)]" id="rsvp">
+            <section className="py-14 md:py-24 px-6 bg-[var(--surface-container-low)]" id="rsvp">
               <div className="max-w-[700px] mx-auto bg-[var(--cream)] rounded-3xl p-8 md:p-14 border border-[var(--border-warm)]/20 shadow-[0_15px_50px_-15px_rgba(115,92,0,0.06)] relative overflow-hidden">
               {/* Watercolor decorative blurs */}
               <div className="absolute -top-32 -right-32 w-80 h-80 bg-[var(--rose-light)]/20 rounded-full blur-[80px] pointer-events-none" />
@@ -1019,9 +1019,9 @@ export const InvitationMain: React.FC<InvitationMainProps> = ({ guest, initialWe
           )}
 
           {/* ── 9.5 Family Section ── */}
-          <section className="py-24 px-6 bg-[var(--cream)] border-t border-[var(--border-warm)]/20 scroll-mt-20" id="family">
+          <section className="py-14 md:py-24 px-6 bg-[var(--cream)] border-t border-[var(--border-warm)]/20 scroll-mt-20" id="family">
             <div className="max-w-[1200px] mx-auto">
-              <div className="text-center mb-16">
+              <div className="text-center mb-10 md:mb-16">
                 <p className="sans text-xs uppercase tracking-[0.25em] text-[var(--muted-text)] font-semibold mb-2">
                   {language === "en" ? "Loving Families" : "സ്നേഹനിധികളായ കുടുംബാംഗങ്ങൾ"}
                 </p>
@@ -1117,9 +1117,9 @@ export const InvitationMain: React.FC<InvitationMainProps> = ({ guest, initialWe
 
           {/* ── 10. FAQ Section ── */}
           {faqs.length > 0 && (
-          <section className="py-24 px-6 bg-[var(--cream)] border-t border-[var(--border-warm)]/20">
+          <section className="py-14 md:py-24 px-6 bg-[var(--cream)] border-t border-[var(--border-warm)]/20">
             <div className="max-w-2xl mx-auto">
-              <div className="text-center mb-16">
+              <div className="text-center mb-10 md:mb-16">
                 <p className="sans text-xs uppercase tracking-[0.25em] text-[var(--muted-text)] font-semibold mb-2">Good to Know</p>
                 <h2 className="font-headline-lg text-4xl md:text-5xl text-[var(--primary)] mb-4 serif font-light">FAQs</h2>
                 <SectionDivider />
