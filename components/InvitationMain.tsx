@@ -664,9 +664,7 @@ export const InvitationMain: React.FC<InvitationMainProps> = ({ guest, initialWe
                 ))}
               </div>
 
-              <div className="mt-16 text-center">
-                <p className="sans text-xs text-[var(--muted-text)] tracking-wider italic">Dress Code: Formal Attire (Champagne, Pastel, or Cream tones highly welcome)</p>
-              </div>
+
             </div>
           </section>
 
