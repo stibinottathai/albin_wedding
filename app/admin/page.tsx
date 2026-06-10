@@ -200,6 +200,7 @@ export default function AdminDashboard() {
   const [sharePhone, setSharePhone] = useState("");
   const canvasRef = React.useRef<HTMLCanvasElement>(null);
   const [editingGuest, setEditingGuest] = useState<Guest | null>(null);
+  const [isGuestSaving, setIsGuestSaving] = useState(false);
   const [viewingRsvpMessage, setViewingRsvpMessage] = useState<{ name: string; greeting: string; message: string } | null>(null);
   
   // Feedback states
@@ -630,35 +631,61 @@ export default function AdminDashboard() {
   // Add/Edit Guest Action
   const handleCreateGuest = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newGuestName.trim()) return;
+    if (!newGuestName.trim() || isGuestSaving) return;
+
+    setIsGuestSaving(true);
+    const guestName = newGuestName.trim();
+    const guestGreeting = newGuestGreeting.trim() || guestName;
+    const guestAttendees = newGuestAttendees;
+    const guestEmail = newGuestEmail.trim() || undefined;
+    const guestCategory = newGuestCategory;
 
     try {
       if (editingGuest) {
-        await updateGuest(editingGuest.id, {
-          name: newGuestName.trim(),
-          greeting: newGuestGreeting.trim() || newGuestName.trim(),
-          allowedAttendees: newGuestAttendees,
-          email: newGuestEmail.trim() || undefined,
-          category: newGuestCategory
-        });
+        // Optimistic UI: update the guest in the local list immediately
+        setGuests(prev => prev.map(g => g.id === editingGuest.id ? {
+          ...g,
+          name: guestName,
+          greeting: guestGreeting,
+          allowedAttendees: guestAttendees,
+          email: guestEmail,
+          category: guestCategory
+        } : g));
         setEditingGuest(null);
+
+        await updateGuest(editingGuest.id, {
+          name: guestName,
+          greeting: guestGreeting,
+          allowedAttendees: guestAttendees,
+          email: guestEmail,
+          category: guestCategory
+        });
       } else {
-        await createGuest(
-          newGuestName.trim(), 
-          newGuestGreeting.trim() || newGuestName.trim(), 
-          newGuestAttendees, 
-          newGuestEmail.trim() || undefined,
-          newGuestCategory
+        // Create the guest in the database, then add to list in one shot (no flicker)
+        const newGuest = await createGuest(
+          guestName,
+          guestGreeting,
+          guestAttendees,
+          guestEmail,
+          guestCategory
         );
+
+        // Single state update — no double render
+        setGuests(prev => [newGuest, ...prev]);
       }
+
+      // Clear the form
       setNewGuestName("");
       setNewGuestGreeting("");
       setNewGuestAttendees(2);
       setNewGuestEmail("");
       setNewGuestCategory("General");
-      loadAdminData(); // Refresh list
     } catch (err) {
       console.error(err);
+      // On failure, reload to get the correct state
+      loadAdminData();
+    } finally {
+      setIsGuestSaving(false);
     }
   };
 
@@ -2147,9 +2174,15 @@ export default function AdminDashboard() {
                 <div className="flex gap-2 w-full">
                   <button
                     type="submit"
-                    className="flex-1 px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs uppercase tracking-wider font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer h-[38px]"
+                    disabled={isGuestSaving}
+                    className="flex-1 px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs uppercase tracking-wider font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer h-[38px] disabled:opacity-60 disabled:cursor-not-allowed"
                   >
-                    {editingGuest ? (
+                    {isGuestSaving ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        {editingGuest ? "Saving..." : "Adding..."}
+                      </>
+                    ) : editingGuest ? (
                       <>
                         <Check className="h-4 w-4" />
                         Save
