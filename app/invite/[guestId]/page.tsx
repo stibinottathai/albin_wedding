@@ -4,6 +4,8 @@ import { getGuest, getWeddingInfo } from "../../../lib/db";
 import { notFound } from "next/navigation";
 import { Metadata } from "next";
 
+export const dynamic = "force-dynamic";
+
 interface InvitePageProps {
   params: Promise<{
     guestId: string;

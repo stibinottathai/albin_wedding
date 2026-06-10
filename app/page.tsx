@@ -3,6 +3,8 @@ import InvitationMain from "../components/InvitationMain";
 import type { Metadata } from "next";
 import { getWeddingInfo } from "../lib/db";
 
+export const dynamic = "force-dynamic";
+
 export async function generateMetadata(): Promise<Metadata> {
   const weddingInfo = await getWeddingInfo();
   const groom = weddingInfo?.groomName || "Albin";
