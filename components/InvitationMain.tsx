@@ -223,6 +223,34 @@ function ParallaxHero({
   );
 }
 
+
+/* ─── Helper: Extract clean Google Maps embed src from raw URL or pasted iframe HTML ─── */
+function getCleanMapEmbedSrc(raw: string): string | null {
+  if (!raw || !raw.trim()) return null;
+  let url = raw.trim();
+
+  // If the user pasted a full <iframe ...> tag, extract just the src attribute
+  const srcMatch = url.match(/src=["']([^"']+)["']/i);
+  if (srcMatch) {
+    url = srcMatch[1];
+  }
+
+  // Decode HTML entities (e.g. &#39; → ', &amp; → &)
+  url = url
+    .replace(/&#39;/g, "'")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"');
+
+  // Only allow actual Google Maps embed URLs
+  if (url.includes("google.com/maps/embed")) {
+    return url;
+  }
+
+  return null;
+}
+
 /* ─── Premium Floral/Line Divider ─── */
 function SectionDivider() {
   return (
@@ -669,106 +697,176 @@ export const InvitationMain: React.FC<InvitationMainProps> = ({ guest, initialWe
           </section>
 
 
-          {/* ── 6. Venue Section ── */}
+          {/* ── 6. Venue Section — Immersive Map + Details ── */}
           <section className="py-24 px-6 bg-[var(--cream)] relative overflow-hidden" id="venue">
-            {/* Decorative background blurs */}
-            <div className="absolute -top-40 -left-40 w-96 h-96 bg-[var(--rose-light)]/10 rounded-full blur-[100px] pointer-events-none" />
-            <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-[var(--primary-container)]/8 rounded-full blur-[100px] pointer-events-none" />
+            {/* Decorative watercolor blurs */}
+            <div className="absolute -top-40 -left-40 w-96 h-96 bg-[var(--rose-light)]/15 rounded-full blur-[100px] pointer-events-none" />
+            <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-[var(--primary-container)]/12 rounded-full blur-[100px] pointer-events-none" />
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[var(--sage-light)]/6 rounded-full blur-[120px] pointer-events-none" />
 
-            <div className="max-w-[1100px] mx-auto relative z-10">
-              <div className="text-center mb-16">
-                <p className="sans text-[10px] uppercase tracking-[0.3em] text-[var(--muted-text)] font-semibold mb-3">The Location</p>
+            <div className="max-w-[1200px] mx-auto relative z-10">
+              {/* Section Header */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.8 }}
+                className="text-center mb-16"
+              >
+                <p className="sans text-xs uppercase tracking-[0.25em] text-[var(--muted-text)] font-semibold mb-2">The Location</p>
+                <h2 className="font-headline-lg text-4xl md:text-5xl text-[var(--primary)] mb-4 serif font-light">{t("venue")}</h2>
                 <SectionDivider />
-                <h2 className="font-headline-lg text-4xl md:text-5xl text-[var(--primary)] mt-4 serif font-light">{t("venue")}</h2>
-              </div>
+              </motion.div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-0 items-stretch">
-                {/* Map Side */}
-                <div className="relative rounded-3xl lg:rounded-r-none overflow-hidden shadow-[0_20px_60px_-15px_rgba(115,92,0,0.1)] border border-[var(--border-warm)]/20 min-h-[320px] lg:min-h-[480px]">
-                  {weddingInfo.googleMapEmbedUrl ? (
+              {/* Main Content: Map + Info Split */}
+              <div className="grid grid-cols-1 lg:grid-cols-5 gap-0 max-w-5xl mx-auto rounded-3xl overflow-hidden border border-[var(--border-warm)]/30 shadow-[0_20px_60px_-15px_rgba(115,92,0,0.08)] bg-[var(--surface-container-low)]">
+                
+                {/* Left: Embedded Map (3 columns on desktop) */}
+                <motion.div
+                  initial={{ opacity: 0, x: -30 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.9, ease: "easeOut" }}
+                  className="lg:col-span-3 relative min-h-[300px] lg:min-h-[520px] bg-[var(--parchment)]"
+                >
+                  {(() => {
+                    const cleanSrc = getCleanMapEmbedSrc(weddingInfo.googleMapEmbedUrl);
+                    return cleanSrc ? (
                     <iframe
-                      src={weddingInfo.googleMapEmbedUrl}
-                      className="w-full h-full absolute inset-0 border-0"
+                      src={cleanSrc}
+                      width="100%"
+                      height="100%"
+                      style={{ border: 0, minHeight: "300px" }}
                       allowFullScreen
                       loading="lazy"
                       referrerPolicy="no-referrer-when-downgrade"
-                      title="Wedding Venue Location"
+                      title="Wedding Venue Map"
+                      className="absolute inset-0 w-full h-full"
                     />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-[var(--parchment)]">
-                      <div className="text-center px-6">
-                        <MapPin className="w-10 h-10 text-[var(--primary)] mx-auto mb-3 opacity-40" />
-                        <p className="serif italic text-lg text-[var(--primary)] mb-1">{weddingInfo.locationName}</p>
-                        <p className="sans text-[10px] text-[var(--muted-text)]">{weddingInfo.locationAddress}</p>
+                    <div className="absolute inset-0 flex items-center justify-center bg-[var(--parchment)]">
+                      <div className="text-center p-8">
+                        <MapPin className="w-12 h-12 text-[var(--primary)] mx-auto mb-4 opacity-40" />
+                        <p className="serif italic text-lg text-[var(--charcoal)] opacity-60">{weddingInfo.locationName}</p>
+                        <p className="sans text-xs text-[var(--muted-text)] mt-1">{weddingInfo.locationAddress}</p>
                       </div>
                     </div>
-                  )}
-                </div>
+                  );
+                  })()}
+                  
+                  {/* Subtle gradient overlay at the edge for blending */}
+                  <div className="absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-[var(--surface-container-low)] to-transparent pointer-events-none hidden lg:block" />
+                  <div className="absolute inset-x-0 bottom-0 h-6 bg-gradient-to-t from-[var(--surface-container-low)] to-transparent pointer-events-none lg:hidden" />
+                </motion.div>
 
-                {/* Details Side */}
-                <div className="bg-white rounded-3xl lg:rounded-l-none p-8 md:p-12 shadow-[0_20px_60px_-15px_rgba(115,92,0,0.06)] border border-[var(--border-warm)]/20 flex flex-col justify-center relative overflow-hidden">
-                  {/* Subtle corner accent */}
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-[var(--rose-light)]/15 to-transparent rounded-bl-full pointer-events-none" />
-
-                  <div className="relative z-10">
-                    {/* Venue Name */}
+                {/* Right: Venue Details (2 columns on desktop) */}
+                <motion.div
+                  initial={{ opacity: 0, x: 30 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.9, delay: 0.15, ease: "easeOut" }}
+                  className="lg:col-span-2 p-8 md:p-10 flex flex-col justify-between"
+                >
+                  {/* Venue Name & Address */}
+                  <div>
                     <div className="mb-8">
-                      <div className="flex items-center gap-3 mb-3">
-                        <div className="w-10 h-10 rounded-full bg-[var(--primary)]/8 flex items-center justify-center shrink-0">
-                          <MapPin className="w-4.5 h-4.5 text-[var(--primary)]" />
+                      <div className="flex items-center gap-2.5 mb-3">
+                        <div className="w-8 h-8 rounded-full bg-[var(--primary)]/10 flex items-center justify-center shrink-0">
+                          <MapPin className="w-4 h-4 text-[var(--primary)]" />
                         </div>
-                        <div>
-                          <p className="sans text-[9px] uppercase tracking-[0.2em] text-[var(--muted-text)] font-bold">Venue</p>
-                        </div>
+                        <span className="sans text-[9px] uppercase tracking-[0.25em] text-[var(--primary)] font-bold">Wedding Venue</span>
                       </div>
                       <h3 className="serif text-2xl md:text-3xl italic text-[var(--charcoal)] mb-2 font-light">{weddingInfo.locationName}</h3>
                       <p className="sans text-xs text-[var(--muted-text)] leading-relaxed">{weddingInfo.locationAddress}</p>
                     </div>
 
-                    <div className="w-full h-px bg-gradient-to-r from-transparent via-[var(--border-warm)]/50 to-transparent mb-8" />
+                    {/* Divider */}
+                    <div className="w-full h-px bg-gradient-to-r from-[var(--border-warm)]/50 via-[var(--border-warm)]/20 to-transparent mb-7" />
 
-                    {/* Parking Info */}
-                    {weddingInfo.parkingInfo && (
-                      <div className="mb-8">
-                        <div className="flex items-center gap-3 mb-3">
-                          <div className="w-10 h-10 rounded-full bg-[var(--primary)]/8 flex items-center justify-center shrink-0">
-                            <Calendar className="w-4.5 h-4.5 text-[var(--primary)]" />
+                    {/* Parking Info Card */}
+                    <motion.div
+                      initial={{ opacity: 0, y: 15 }}
+                      whileInView={{ opacity: 1, y: 0 }}
+                      viewport={{ once: true }}
+                      transition={{ duration: 0.6, delay: 0.3 }}
+                      className="mb-6"
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="w-9 h-9 rounded-xl bg-[var(--sage-light)]/20 flex items-center justify-center shrink-0 mt-0.5">
+                          <svg className="w-4 h-4 text-[var(--primary)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <rect x="1" y="3" width="15" height="13" rx="2" />
+                            <path d="M16 8h2a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2h-2" />
+                            <circle cx="5.5" cy="18.5" r="2.5" />
+                            <circle cx="18.5" cy="18.5" r="2.5" />
+                          </svg>
+                        </div>
+                        <div>
+                          <p className="sans text-[10px] uppercase tracking-widest text-[var(--primary)] font-bold mb-1">{t("parking")}</p>
+                          <p className="sans text-[11px] text-[var(--muted-text)] leading-relaxed">{weddingInfo.parkingInfo}</p>
+                        </div>
+                      </div>
+                    </motion.div>
+
+                    {/* Contact Cards */}
+                    <motion.div
+                      initial={{ opacity: 0, y: 15 }}
+                      whileInView={{ opacity: 1, y: 0 }}
+                      viewport={{ once: true }}
+                      transition={{ duration: 0.6, delay: 0.45 }}
+                    >
+                      <p className="sans text-[10px] uppercase tracking-widest text-[var(--primary)] font-bold mb-3">{t("contact")}</p>
+                      <div className="flex flex-col gap-2.5">
+                        <a
+                          href={`tel:${weddingInfo.contactGroom?.replace(/\s/g, "")}`}
+                          className="flex items-center gap-3 rounded-xl bg-[var(--cream)] px-4 py-3 border border-[var(--border-warm)]/25 hover:border-[var(--primary)]/40 hover:shadow-sm transition-all duration-300 group"
+                        >
+                          <div className="w-8 h-8 rounded-full bg-[var(--primary)]/8 flex items-center justify-center group-hover:bg-[var(--primary)]/15 transition-colors">
+                            <Phone className="w-3.5 h-3.5 text-[var(--primary)]" />
                           </div>
-                          <p className="sans text-[9px] uppercase tracking-[0.2em] text-[var(--muted-text)] font-bold">{t("parking")}</p>
-                        </div>
-                        <p className="sans text-xs text-[var(--muted-text)] leading-relaxed pl-[52px]">{weddingInfo.parkingInfo}</p>
-                      </div>
-                    )}
-
-                    {/* Contact */}
-                    <div className="mb-8">
-                      <div className="flex items-center gap-3 mb-4">
-                        <div className="w-10 h-10 rounded-full bg-[var(--primary)]/8 flex items-center justify-center shrink-0">
-                          <Phone className="w-4.5 h-4.5 text-[var(--primary)]" />
-                        </div>
-                        <p className="sans text-[9px] uppercase tracking-[0.2em] text-[var(--muted-text)] font-bold">{t("contact")}</p>
-                      </div>
-                      <div className="pl-[52px] space-y-3">
-                        <a href={`tel:${weddingInfo.contactGroom?.replace(/\s/g, '')}`} className="flex items-center gap-3 group">
-                          <span className="sans text-[10px] uppercase tracking-wider text-[var(--muted-text)] font-semibold w-14">Groom</span>
-                          <span className="sans text-sm text-[var(--charcoal)] font-semibold group-hover:text-[var(--primary)] transition-colors">{weddingInfo.contactGroom}</span>
+                          <div className="flex-1 min-w-0">
+                            <p className="sans text-[9px] uppercase tracking-widest text-[var(--muted-text)] font-semibold">Groom</p>
+                            <p className="sans text-xs text-[var(--charcoal)] font-semibold truncate">{weddingInfo.contactGroom}</p>
+                          </div>
+                          <ArrowRight className="w-3.5 h-3.5 text-[var(--primary)] opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all duration-300" />
                         </a>
-                        <a href={`tel:${weddingInfo.contactBride?.replace(/\s/g, '')}`} className="flex items-center gap-3 group">
-                          <span className="sans text-[10px] uppercase tracking-wider text-[var(--muted-text)] font-semibold w-14">Bride</span>
-                          <span className="sans text-sm text-[var(--charcoal)] font-semibold group-hover:text-[var(--primary)] transition-colors">{weddingInfo.contactBride}</span>
+                        <a
+                          href={`tel:${weddingInfo.contactBride?.replace(/\s/g, "")}`}
+                          className="flex items-center gap-3 rounded-xl bg-[var(--cream)] px-4 py-3 border border-[var(--border-warm)]/25 hover:border-[var(--primary)]/40 hover:shadow-sm transition-all duration-300 group"
+                        >
+                          <div className="w-8 h-8 rounded-full bg-[var(--rose-light)]/30 flex items-center justify-center group-hover:bg-[var(--rose-light)]/50 transition-colors">
+                            <Phone className="w-3.5 h-3.5 text-[var(--dusty-rose)]" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="sans text-[9px] uppercase tracking-widest text-[var(--muted-text)] font-semibold">Bride</p>
+                            <p className="sans text-xs text-[var(--charcoal)] font-semibold truncate">{weddingInfo.contactBride}</p>
+                          </div>
+                          <ArrowRight className="w-3.5 h-3.5 text-[var(--dusty-rose)] opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all duration-300" />
                         </a>
                       </div>
-                    </div>
-
-                    {/* View on Map Button */}
-                    <a href={weddingInfo.googleMapEmbedUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(weddingInfo.locationAddress)}`}
-                      target="_blank" rel="noopener noreferrer"
-                      className="flex items-center justify-center gap-2.5 bg-[var(--primary)] text-white rounded-full px-8 py-3 sans text-[10px] uppercase tracking-[0.15em] hover:bg-[var(--sage-dark)] transition-all duration-300 w-fit font-bold shadow-[0_6px_20px_-4px_rgba(115,92,0,0.3)] hover:shadow-[0_10px_30px_-4px_rgba(115,92,0,0.4)] hover:-translate-y-0.5">
-                      <ExternalLink className="w-3.5 h-3.5" />
-                      {t("viewMap")}
-                    </a>
+                    </motion.div>
                   </div>
-                </div>
+
+                  {/* CTA: Open in Google Maps */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.6, delay: 0.6 }}
+                    className="mt-8"
+                  >
+                    <a
+                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(weddingInfo.locationAddress)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="group relative overflow-hidden flex items-center justify-center gap-2.5 bg-gradient-to-br from-[var(--primary)] to-[var(--sage-dark)] text-white rounded-xl px-6 py-3.5 sans text-[10px] uppercase tracking-[0.2em] font-bold w-full transition-all duration-500 shadow-[0_6px_20px_-4px_rgba(115,92,0,0.35)] hover:shadow-[0_10px_30px_-4px_rgba(115,92,0,0.45)] hover:-translate-y-0.5"
+                    >
+                      {/* Shimmer on hover */}
+                      <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent group-hover:animate-shimmer" />
+                      <ExternalLink className="w-3.5 h-3.5 group-hover:rotate-12 transition-transform duration-300" />
+                      <span>{t("viewMap")}</span>
+                    </a>
+                  </motion.div>
+                </motion.div>
               </div>
             </div>
           </section>
