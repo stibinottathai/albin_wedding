@@ -3989,7 +3989,7 @@ export default function AdminDashboard() {
                     readOnly
                     value={`Dearest ${sharingGuest.greeting},\n\nWe are delighted to invite you to celebrate our wedding. Please find our digital invitation card and RSVP details at the link below:\n\n${
                       typeof window !== "undefined" ? window.location.origin : ""
-                    }/invite/${sharingGuest.id}\n\nWith love,\nAlbin & Stella`}
+                    }/invite/${sharingGuest.id}\n\nWith love,\n${weddingInfo?.groomName || "Groom"} & ${weddingInfo?.brideName || "Bride"}`}
                     className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-600 resize-none font-mono"
                   />
                 </div>
@@ -4001,7 +4001,7 @@ export default function AdminDashboard() {
                   onClick={() => {
                     const text = `Dearest ${sharingGuest.greeting},\n\nWe are delighted to invite you to celebrate our wedding. Please find our digital invitation card and RSVP details at the link below:\n\n${
                       typeof window !== "undefined" ? window.location.origin : ""
-                    }/invite/${sharingGuest.id}\n\nWith love,\nAlbin & Stella`;
+                    }/invite/${sharingGuest.id}\n\nWith love,\n${weddingInfo?.groomName || "Groom"} & ${weddingInfo?.brideName || "Bride"}`;
                     navigator.clipboard.writeText(text);
                     alert("Invitation text copied to clipboard!");
                   }}
@@ -4015,7 +4015,7 @@ export default function AdminDashboard() {
                   }text=${encodeURIComponent(
                     `Dearest ${sharingGuest.greeting},\n\nWe are delighted to invite you to celebrate our wedding. Please find our digital invitation card and RSVP details at the link below:\n\n${
                       typeof window !== "undefined" ? window.location.origin : ""
-                    }/invite/${sharingGuest.id}\n\nWith love,\nAlbin & Stella`
+                    }/invite/${sharingGuest.id}\n\nWith love,\n${weddingInfo?.groomName || "Groom"} & ${weddingInfo?.brideName || "Bride"}`
                   )}`}
                   target="_blank"
                   rel="noopener noreferrer"

@@ -668,44 +668,102 @@ export const InvitationMain: React.FC<InvitationMainProps> = ({ guest, initialWe
             </div>
           </section>
 
-          {/* ── 6. Venue Section (Clean editorial layouts and Map) ── */}
-          <section className="py-24 px-6 bg-[var(--cream)] relative" id="venue">
-            <div className="max-w-[1200px] mx-auto">
+
+          {/* ── 6. Venue Section ── */}
+          <section className="py-24 px-6 bg-[var(--cream)] relative overflow-hidden" id="venue">
+            {/* Decorative background blurs */}
+            <div className="absolute -top-40 -left-40 w-96 h-96 bg-[var(--rose-light)]/10 rounded-full blur-[100px] pointer-events-none" />
+            <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-[var(--primary-container)]/8 rounded-full blur-[100px] pointer-events-none" />
+
+            <div className="max-w-[1100px] mx-auto relative z-10">
               <div className="text-center mb-16">
-                <p className="sans text-xs uppercase tracking-[0.25em] text-[var(--muted-text)] font-semibold mb-2">The Location</p>
-                <h2 className="font-headline-lg text-4xl md:text-5xl text-[var(--primary)] mb-4 serif font-light">{t("venue")}</h2>
+                <p className="sans text-[10px] uppercase tracking-[0.3em] text-[var(--muted-text)] font-semibold mb-3">The Location</p>
                 <SectionDivider />
+                <h2 className="font-headline-lg text-4xl md:text-5xl text-[var(--primary)] mt-4 serif font-light">{t("venue")}</h2>
               </div>
 
-              <div className="max-w-2xl mx-auto">
-                <div className="flex flex-col justify-between">
-                  <div className="bg-[var(--surface-container-low)] rounded-3xl p-8 border border-[var(--border-warm)]/30 h-full flex flex-col justify-between shadow-sm">
-                    <div>
-                      <h3 className="serif text-2xl italic text-[var(--charcoal)] mb-2">{weddingInfo.locationName}</h3>
-                      <p className="sans text-xs text-[var(--muted-text)] leading-relaxed mb-6">{weddingInfo.locationAddress}</p>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-0 items-stretch">
+                {/* Map Side */}
+                <div className="relative rounded-3xl lg:rounded-r-none overflow-hidden shadow-[0_20px_60px_-15px_rgba(115,92,0,0.1)] border border-[var(--border-warm)]/20 min-h-[320px] lg:min-h-[480px]">
+                  {weddingInfo.googleMapEmbedUrl ? (
+                    <iframe
+                      src={weddingInfo.googleMapEmbedUrl}
+                      className="w-full h-full absolute inset-0 border-0"
+                      allowFullScreen
+                      loading="lazy"
+                      referrerPolicy="no-referrer-when-downgrade"
+                      title="Wedding Venue Location"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-[var(--parchment)]">
+                      <div className="text-center px-6">
+                        <MapPin className="w-10 h-10 text-[var(--primary)] mx-auto mb-3 opacity-40" />
+                        <p className="serif italic text-lg text-[var(--primary)] mb-1">{weddingInfo.locationName}</p>
+                        <p className="sans text-[10px] text-[var(--muted-text)]">{weddingInfo.locationAddress}</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
 
-                      <div className="border-t border-[var(--border-warm)]/40 pt-6 space-y-4">
-                        <div>
-                          <p className="sans text-[10px] uppercase tracking-widest text-[var(--primary)] font-bold mb-1">{t("parking")}</p>
-                          <p className="sans text-xs text-[var(--muted-text)] leading-relaxed">{weddingInfo.parkingInfo}</p>
+                {/* Details Side */}
+                <div className="bg-white rounded-3xl lg:rounded-l-none p-8 md:p-12 shadow-[0_20px_60px_-15px_rgba(115,92,0,0.06)] border border-[var(--border-warm)]/20 flex flex-col justify-center relative overflow-hidden">
+                  {/* Subtle corner accent */}
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-[var(--rose-light)]/15 to-transparent rounded-bl-full pointer-events-none" />
+
+                  <div className="relative z-10">
+                    {/* Venue Name */}
+                    <div className="mb-8">
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="w-10 h-10 rounded-full bg-[var(--primary)]/8 flex items-center justify-center shrink-0">
+                          <MapPin className="w-4.5 h-4.5 text-[var(--primary)]" />
                         </div>
                         <div>
-                          <p className="sans text-[10px] uppercase tracking-widest text-[var(--primary)] font-bold mb-2">{t("contact")}</p>
-                          <div className="space-y-1.5">
-                            <p className="flex items-center gap-2 sans text-xs text-[var(--muted-text)]">
-                              <Phone className="w-3.5 h-3.5 text-[var(--primary)]" /> Groom: <span className="font-semibold">{weddingInfo.contactGroom}</span>
-                            </p>
-                            <p className="flex items-center gap-2 sans text-xs text-[var(--muted-text)]">
-                              <Phone className="w-3.5 h-3.5 text-[var(--primary)]" /> Bride: <span className="font-semibold">{weddingInfo.contactBride}</span>
-                            </p>
+                          <p className="sans text-[9px] uppercase tracking-[0.2em] text-[var(--muted-text)] font-bold">Venue</p>
+                        </div>
+                      </div>
+                      <h3 className="serif text-2xl md:text-3xl italic text-[var(--charcoal)] mb-2 font-light">{weddingInfo.locationName}</h3>
+                      <p className="sans text-xs text-[var(--muted-text)] leading-relaxed">{weddingInfo.locationAddress}</p>
+                    </div>
+
+                    <div className="w-full h-px bg-gradient-to-r from-transparent via-[var(--border-warm)]/50 to-transparent mb-8" />
+
+                    {/* Parking Info */}
+                    {weddingInfo.parkingInfo && (
+                      <div className="mb-8">
+                        <div className="flex items-center gap-3 mb-3">
+                          <div className="w-10 h-10 rounded-full bg-[var(--primary)]/8 flex items-center justify-center shrink-0">
+                            <Calendar className="w-4.5 h-4.5 text-[var(--primary)]" />
                           </div>
+                          <p className="sans text-[9px] uppercase tracking-[0.2em] text-[var(--muted-text)] font-bold">{t("parking")}</p>
                         </div>
+                        <p className="sans text-xs text-[var(--muted-text)] leading-relaxed pl-[52px]">{weddingInfo.parkingInfo}</p>
+                      </div>
+                    )}
+
+                    {/* Contact */}
+                    <div className="mb-8">
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="w-10 h-10 rounded-full bg-[var(--primary)]/8 flex items-center justify-center shrink-0">
+                          <Phone className="w-4.5 h-4.5 text-[var(--primary)]" />
+                        </div>
+                        <p className="sans text-[9px] uppercase tracking-[0.2em] text-[var(--muted-text)] font-bold">{t("contact")}</p>
+                      </div>
+                      <div className="pl-[52px] space-y-3">
+                        <a href={`tel:${weddingInfo.contactGroom?.replace(/\s/g, '')}`} className="flex items-center gap-3 group">
+                          <span className="sans text-[10px] uppercase tracking-wider text-[var(--muted-text)] font-semibold w-14">Groom</span>
+                          <span className="sans text-sm text-[var(--charcoal)] font-semibold group-hover:text-[var(--primary)] transition-colors">{weddingInfo.contactGroom}</span>
+                        </a>
+                        <a href={`tel:${weddingInfo.contactBride?.replace(/\s/g, '')}`} className="flex items-center gap-3 group">
+                          <span className="sans text-[10px] uppercase tracking-wider text-[var(--muted-text)] font-semibold w-14">Bride</span>
+                          <span className="sans text-sm text-[var(--charcoal)] font-semibold group-hover:text-[var(--primary)] transition-colors">{weddingInfo.contactBride}</span>
+                        </a>
                       </div>
                     </div>
 
+                    {/* View on Map Button */}
                     <a href={weddingInfo.googleMapEmbedUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(weddingInfo.locationAddress)}`}
                       target="_blank" rel="noopener noreferrer"
-                      className="mt-8 flex items-center justify-center gap-2 bg-[var(--primary)] text-white rounded-full px-8 py-2.5 sans text-[10px] uppercase tracking-widest hover:bg-[var(--primary-container)] hover:text-[var(--charcoal)] transition-colors duration-300 w-fit mx-auto font-semibold shadow-sm">
+                      className="flex items-center justify-center gap-2.5 bg-[var(--primary)] text-white rounded-full px-8 py-3 sans text-[10px] uppercase tracking-[0.15em] hover:bg-[var(--sage-dark)] transition-all duration-300 w-fit font-bold shadow-[0_6px_20px_-4px_rgba(115,92,0,0.3)] hover:shadow-[0_10px_30px_-4px_rgba(115,92,0,0.4)] hover:-translate-y-0.5">
                       <ExternalLink className="w-3.5 h-3.5" />
                       {t("viewMap")}
                     </a>
