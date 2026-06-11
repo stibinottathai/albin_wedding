@@ -341,7 +341,7 @@ export default function BudgetTrackerTab({ registerActions }: BudgetTrackerTabPr
     if (!budget) return;
     setIsSubmitting(true);
     try {
-      const notesValue = data.isAdvance ? `[Advance]${data.notes || ""}` : (data.notes || "");
+      const notesValue = data.notes || "";
       if (editingExpense) {
         // Edit Mode
         const updatedFields = {
@@ -1117,21 +1117,6 @@ export default function BudgetTrackerTab({ registerActions }: BudgetTrackerTabPr
                   )}
                 </div>
 
-                {/* Advance Payment Option */}
-                <div className="flex items-center justify-between p-3.5 bg-[#fffaf5] border border-amber-100 rounded-xl">
-                  <div className="flex flex-col pr-4 text-left">
-                    <span className="text-xs font-bold text-slate-800">Mark as Advance Payment</span>
-                    <span className="text-[10px] text-slate-400 mt-0.5">This represents a deposit or partial advance payment rather than a full settlement.</span>
-                  </div>
-                  <label className="relative inline-flex items-center cursor-pointer select-none shrink-0">
-                    <input
-                      type="checkbox"
-                      {...expenseForm.register("isAdvance")}
-                      className="sr-only peer"
-                    />
-                    <div className="w-10 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
-                  </label>
-                </div>
 
                 {/* Row 4: Notes (Optional) */}
                 <div>
