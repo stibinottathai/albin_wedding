@@ -352,17 +352,25 @@ export default function BudgetTrackerTab({ registerActions }: BudgetTrackerTabPr
           notes: notesValue,
         };
 
+        // Optimistic update
+        setExpenses(prev => prev.map(e => e.id === editingExpense.id ? { ...e, ...updatedFields } : e));
+        setIsExpenseModalOpen(false); // Close instantly
+        const editId = editingExpense.id;
+        setEditingExpense(null);
+
         if (isSupabaseConfigured) {
-          const res = await updateExpenseAction(editingExpense.id, updatedFields);
+          const res = await updateExpenseAction(editId, updatedFields);
           if (!res.success) throw new Error(res.error);
+          setExpenses(prev => prev.map(e => e.id === res.data.id ? res.data : e));
         } else {
-          await updateExpense(editingExpense.id, {
+          const updatedE = await updateExpense(editId, {
             title: data.title,
             category: data.category,
             amount: data.amount,
             expense_date: data.expenseDate,
             notes: notesValue,
           });
+          setExpenses(prev => prev.map(e => e.id === updatedE.id ? updatedE : e));
         }
         
         showToast("Expense updated successfully!");
@@ -377,17 +385,24 @@ export default function BudgetTrackerTab({ registerActions }: BudgetTrackerTabPr
           notes: notesValue,
         };
 
+        const tempId = `temp-${Date.now()}`;
+        const optimisticExpense: Expense = { id: tempId, ...newExpenseData };
+
+        // Optimistic add
+        setExpenses(prev => [optimisticExpense, ...prev]);
+        setIsExpenseModalOpen(false); // Close instantly
+
         if (isSupabaseConfigured) {
           const res = await addExpenseAction(newExpenseData);
           if (!res.success) throw new Error(res.error);
+          setExpenses(prev => prev.map(e => e.id === tempId ? res.data : e));
         } else {
-          await createExpense(newExpenseData);
+          const newE = await createExpense(newExpenseData);
+          setExpenses(prev => prev.map(e => e.id === tempId ? newE : e));
         }
         showToast("Expense recorded successfully!");
       }
       
-      setIsExpenseModalOpen(false);
-      setEditingExpense(null);
       expenseForm.reset({
         title: "",
         category: "",
@@ -396,9 +411,9 @@ export default function BudgetTrackerTab({ registerActions }: BudgetTrackerTabPr
         notes: "",
         isAdvance: false,
       });
-      loadData();
     } catch (e: any) {
       showToast(e.message || "Failed to record expense.", "error");
+      loadData(); // Revert to source of truth if failed
     } finally {
       setIsSubmitting(false);
     }

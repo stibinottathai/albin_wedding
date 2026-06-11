@@ -3971,17 +3971,17 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {activeTab === "budget" && (
+        <div className={activeTab === "budget" ? "block" : "hidden"}>
           <BudgetTrackerTab registerActions={setBudgetActions} />
-        )}
+        </div>
 
-        {activeTab === "tasks" && (
+        <div className={activeTab === "tasks" ? "block" : "hidden"}>
           <TasksTrackerTab registerActions={setTasksActions} />
-        )}
+        </div>
 
-        {activeTab === "vendors" && (
+        <div className={activeTab === "vendors" ? "block" : "hidden"}>
           <VendorsTrackerTab registerActions={setVendorsActions} />
-        )}
+        </div>
           </div> {/* End of Scrollable Tab Content Container */}
       </main>
     </div>

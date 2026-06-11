@@ -247,11 +247,19 @@ export default function TasksTrackerTab({ registerActions }: TasksTrackerTabProp
           priority: data.priority,
         };
 
+        // Optimistic update
+        setTasks(prev => prev.map(t => t.id === editingTask.id ? { ...t, ...fields } : t));
+        setIsTaskModalOpen(false); // Close instantly
+        const editId = editingTask.id;
+        setEditingTask(null);
+
         if (isSupabaseConfigured) {
-          const res = await updateTaskAction(editingTask.id, fields);
+          const res = await updateTaskAction(editId, fields);
           if (!res.success) throw new Error(res.error);
+          setTasks(prev => prev.map(t => t.id === res.data.id ? res.data : t));
         } else {
-          await updateWeddingTask(editingTask.id, fields);
+          const updatedT = await updateWeddingTask(editId, fields);
+          setTasks(prev => prev.map(t => t.id === updatedT.id ? updatedT : t));
         }
         showToast("Task updated successfully!");
       } else {
@@ -264,19 +272,26 @@ export default function TasksTrackerTab({ registerActions }: TasksTrackerTabProp
           status: "PENDING" as const,
         };
 
+        const tempId = `temp-${Date.now()}`;
+        const optimisticTask: WeddingTask = { id: tempId, ...newTaskFields };
+        
+        // Optimistic add
+        setTasks(prev => [optimisticTask, ...prev]);
+        setIsTaskModalOpen(false); // Close instantly
+
         if (isSupabaseConfigured) {
           const res = await createTaskAction(newTaskFields);
           if (!res.success) throw new Error(res.error);
+          setTasks(prev => prev.map(t => t.id === tempId ? res.data : t));
         } else {
-          await createWeddingTask(newTaskFields);
+          const newT = await createWeddingTask(newTaskFields);
+          setTasks(prev => prev.map(t => t.id === tempId ? newT : t));
         }
         showToast("Task created successfully!");
       }
-      setIsTaskModalOpen(false);
-      setEditingTask(null);
-      loadData();
     } catch (e: any) {
       showToast(e.message || "Failed to save task.", "error");
+      loadData(); // Revert to source of truth if failed
     } finally {
       setIsSubmitting(false);
     }
