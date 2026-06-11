@@ -58,6 +58,7 @@ import {
 } from "../../lib/db";
 import { supabase, isSupabaseConfigured, compressImage } from "../../lib/supabase";
 import BudgetTrackerTab from "../../components/BudgetTrackerTab";
+import TasksTrackerTab from "../../components/TasksTrackerTab";
 
 interface Wish {
   id: string;
@@ -78,8 +79,9 @@ export default function AdminDashboard() {
   const [password, setPassword] = useState("");
   const [authError, setAuthError] = useState("");
 
-  const [activeTab, setActiveTab] = useState<"analytics" | "rsvp" | "guests" | "wishes" | "settings" | "gallery" | "stories" | "events" | "faq" | "budget">("analytics");
+  const [activeTab, setActiveTab] = useState<"analytics" | "rsvp" | "guests" | "wishes" | "settings" | "gallery" | "stories" | "events" | "faq" | "budget" | "tasks">("analytics");
   const [budgetActions, setBudgetActions] = useState<any>(null);
+  const [tasksActions, setTasksActions] = useState<any>(null);
   const [rsvpFilter, setRsvpFilter] = useState<"all" | "accepted" | "declined" | "pending">("all");
   const [weddingInfo, setWeddingInfo] = useState<WeddingInfo | null>(null);
   const [guests, setGuests] = useState<Guest[]>([]);
@@ -1745,6 +1747,7 @@ export default function AdminDashboard() {
                 { id: "guests" as const, icon: <Users className="h-4 w-4 text-[#d4af37]" />, label: "Guest List" },
                 { id: "rsvp" as const, icon: <ClipboardList className="h-4 w-4 text-[#d4af37]" />, label: "RSVP Responses" },
                 { id: "budget" as const, icon: <Wallet className="h-4 w-4 text-[#d4af37]" />, label: "Budget Tracker" },
+                { id: "tasks" as const, icon: <ClipboardList className="h-4 w-4 text-[#d4af37]" />, label: "Tasks Manager" },
                 { id: "wishes" as const, icon: <MessageSquare className="h-4 w-4 text-[#d4af37]" />, label: "Wishes Moderation" },
                 { id: "gallery" as const, icon: <Camera className="h-4 w-4 text-[#d4af37]" />, label: "Wedding Gallery" },
                 { id: "stories" as const, icon: <BookOpen className="h-4 w-4 text-[#d4af37]" />, label: "Our Story" },
@@ -1796,10 +1799,13 @@ export default function AdminDashboard() {
                    activeTab === "events" ? "Wedding Events" : 
                    activeTab === "faq" ? "FAQ Manager" :
                    activeTab === "budget" ? "Budget Tracker" :
+                   activeTab === "tasks" ? "Tasks Manager" :
                    activeTab}
                 </h1>
                 <p className="text-xs text-slate-500 mt-1">
-                  {activeTab === "budget" ? "Monitor budget limits and track all wedding expenses." : "Manage all wedding content, RSVPs, and configurations."}
+                  {activeTab === "budget" ? "Monitor budget limits and track all wedding expenses." : 
+                   activeTab === "tasks" ? "Track all wedding preparation activities, deadlines, and priorities." :
+                   "Manage all wedding content, RSVPs, and configurations."}
                 </p>
               </div>
 
@@ -1817,6 +1823,18 @@ export default function AdminDashboard() {
                     className="px-4 py-2 border border-[#d4af37] text-[#d4af37] hover:bg-[#d4af37] hover:text-slate-950 font-semibold text-xs tracking-wider uppercase rounded-lg transition-all shrink-0 cursor-pointer"
                   >
                     Update Budget Limit
+                  </button>
+                </div>
+              )}
+
+              {activeTab === "tasks" && tasksActions && (
+                <div className="flex items-center gap-3 shrink-0">
+                  <button
+                    onClick={() => tasksActions.openAddTask()}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-slate-900 text-white hover:bg-slate-800 font-bold text-xs tracking-wider uppercase rounded-lg transition-all shadow-sm cursor-pointer"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    Create Task
                   </button>
                 </div>
               )}
@@ -3901,6 +3919,10 @@ export default function AdminDashboard() {
 
         {activeTab === "budget" && (
           <BudgetTrackerTab registerActions={setBudgetActions} />
+        )}
+
+        {activeTab === "tasks" && (
+          <TasksTrackerTab registerActions={setTasksActions} />
         )}
           </div> {/* End of Scrollable Tab Content Container */}
       </main>
