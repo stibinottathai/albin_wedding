@@ -31,7 +31,8 @@ import {
   updateWeddingVendor, 
   deleteWeddingVendor,
   Vendor,
-  VENDOR_CATEGORIES
+  VENDOR_CATEGORIES,
+  VENDOR_SERVICES_STRUCTURE
 } from "../lib/vendors-db";
 import { isSupabaseConfigured } from "../lib/supabase";
 import { createVendorAction, updateVendorAction, deleteVendorAction } from "../app/actions/vendors-actions";
@@ -496,8 +497,14 @@ export default function VendorsTrackerTab({ registerActions }: VendorsTrackerTab
                     className="bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-[11px] font-semibold text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#ffe088]"
                   >
                     <option value="ALL">All Categories</option>
-                    {VENDOR_CATEGORIES.map(cat => (
-                      <option key={cat} value={cat}>{cat}</option>
+                    {VENDOR_SERVICES_STRUCTURE.map((group) => (
+                      <optgroup key={group.main} label={group.main}>
+                        {group.subs.map((sub) => (
+                          <option key={sub.value} value={sub.value}>
+                            {sub.label}
+                          </option>
+                        ))}
+                      </optgroup>
                     ))}
                   </select>
                 </div>
@@ -773,8 +780,14 @@ export default function VendorsTrackerTab({ registerActions }: VendorsTrackerTab
                       {...vendorForm.register("category")}
                       className="block w-full px-3 py-2.5 bg-[#fff8f4] border border-slate-200 focus:ring-[#ffe088] rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:ring-4 transition-all"
                     >
-                      {VENDOR_CATEGORIES.map(cat => (
-                        <option key={cat} value={cat}>{cat}</option>
+                      {VENDOR_SERVICES_STRUCTURE.map((group) => (
+                        <optgroup key={group.main} label={group.main}>
+                          {group.subs.map((sub) => (
+                            <option key={sub.value} value={sub.value}>
+                              {sub.label}
+                            </option>
+                          ))}
+                        </optgroup>
                       ))}
                     </select>
                   </div>

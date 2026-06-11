@@ -1744,31 +1744,67 @@ export default function AdminDashboard() {
               </button>
             </div>
 
-            <nav className="space-y-2">
+            <nav className="space-y-4">
               {[
-                { id: "analytics" as const, icon: <BarChart3 className="h-4 w-4 text-[#d4af37]" />, label: "Analytics" },
-                { id: "guests" as const, icon: <Users className="h-4 w-4 text-[#d4af37]" />, label: "Guest List" },
-                { id: "rsvp" as const, icon: <ClipboardList className="h-4 w-4 text-[#d4af37]" />, label: "RSVP Responses" },
-                { id: "budget" as const, icon: <Wallet className="h-4 w-4 text-[#d4af37]" />, label: "Budget Tracker" },
-                { id: "tasks" as const, icon: <ClipboardList className="h-4 w-4 text-[#d4af37]" />, label: "Tasks Manager" },
-                { id: "vendors" as const, icon: <Briefcase className="h-4 w-4 text-[#d4af37]" />, label: "Vendors Manager" },
-                { id: "wishes" as const, icon: <MessageSquare className="h-4 w-4 text-[#d4af37]" />, label: "Wishes Moderation" },
-                { id: "gallery" as const, icon: <Camera className="h-4 w-4 text-[#d4af37]" />, label: "Wedding Gallery" },
-                { id: "stories" as const, icon: <BookOpen className="h-4 w-4 text-[#d4af37]" />, label: "Our Story" },
-                { id: "events" as const, icon: <Calendar className="h-4 w-4 text-[#d4af37]" />, label: "Wedding Events" },
-                { id: "faq" as const, icon: <MessageSquare className="h-4 w-4 text-[#d4af37]" />, label: "FAQ" },
-                { id: "settings" as const, icon: <SettingsIcon className="h-4 w-4 text-[#d4af37]" />, label: "Site Settings" },
-              ].map((item) => (
-                <button
-                  key={item.id}
-                  onClick={() => goToTab(item.id)}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-xs uppercase tracking-wider font-semibold transition-all ${
-                    activeTab === item.id ? "bg-slate-800 text-white border-l-4 border-[#d4af37]" : "hover:bg-slate-800/50 hover:text-white"
-                  }`}
-                >
-                  {item.icon}
-                  {item.label}
-                </button>
+                {
+                  groupName: "Control Center",
+                  items: [
+                    { id: "analytics" as const, icon: <BarChart3 className="h-4 w-4 text-[#d4af37]" />, label: "Analytics" }
+                  ]
+                },
+                {
+                  groupName: "Guest Relations",
+                  items: [
+                    { id: "guests" as const, icon: <Users className="h-4 w-4 text-[#d4af37]" />, label: "Guest List" },
+                    { id: "rsvp" as const, icon: <ClipboardList className="h-4 w-4 text-[#d4af37]" />, label: "RSVP Responses" },
+                    { id: "wishes" as const, icon: <MessageSquare className="h-4 w-4 text-[#d4af37]" />, label: "Wishes Moderation" }
+                  ]
+                },
+                {
+                  groupName: "Planning & Finance",
+                  items: [
+                    { id: "budget" as const, icon: <Wallet className="h-4 w-4 text-[#d4af37]" />, label: "Budget Tracker" },
+                    { id: "tasks" as const, icon: <ClipboardList className="h-4 w-4 text-[#d4af37]" />, label: "Tasks Manager" },
+                    { id: "vendors" as const, icon: <Briefcase className="h-4 w-4 text-[#d4af37]" />, label: "Vendors Manager" }
+                  ]
+                },
+                {
+                  groupName: "Live Content",
+                  items: [
+                    { id: "stories" as const, icon: <BookOpen className="h-4 w-4 text-[#d4af37]" />, label: "Our Story" },
+                    { id: "events" as const, icon: <Calendar className="h-4 w-4 text-[#d4af37]" />, label: "Wedding Events" },
+                    { id: "gallery" as const, icon: <Camera className="h-4 w-4 text-[#d4af37]" />, label: "Wedding Gallery" },
+                    { id: "faq" as const, icon: <MessageSquare className="h-4 w-4 text-[#d4af37]" />, label: "FAQ" }
+                  ]
+                },
+                {
+                  groupName: "Configuration",
+                  items: [
+                    { id: "settings" as const, icon: <SettingsIcon className="h-4 w-4 text-[#d4af37]" />, label: "Site Settings" }
+                  ]
+                }
+              ].map((group) => (
+                <div key={group.groupName} className="space-y-1">
+                  <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-3 mb-1 select-none">
+                    {group.groupName}
+                  </div>
+                  <div className="space-y-1">
+                    {group.items.map((item) => (
+                      <button
+                        key={item.id}
+                        onClick={() => goToTab(item.id)}
+                        className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-xs uppercase tracking-wider font-semibold transition-all ${
+                          activeTab === item.id 
+                            ? "bg-slate-800 text-white border-l-4 border-[#d4af37]" 
+                            : "hover:bg-slate-800/50 hover:text-white"
+                        }`}
+                      >
+                        {item.icon}
+                        {item.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               ))}
             </nav>
           </div>

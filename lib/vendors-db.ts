@@ -24,17 +24,71 @@ export interface Vendor {
 export const VENDOR_CATEGORIES = [
   "Venue",
   "Catering",
-  "Photography",
-  "Videography",
-  "Decoration",
-  "Makeup",
+  "Wedding Cake & Desserts",
   "Bridal Wear",
   "Groom Wear",
+  "Makeup",
   "Jewellery",
-  "Transportation",
+  "Photography",
+  "Videography",
   "Music",
+  "Sound & Lighting",
+  "Decoration",
   "Printing",
+  "Gifts & Favors",
+  "Transportation",
+  "Guest Accommodation",
   "Other"
+] as const;
+
+export const VENDOR_SERVICES_STRUCTURE = [
+  {
+    main: "Venue & Catering",
+    subs: [
+      { label: "Ceremony & Reception Venue", value: "Venue" as const },
+      { label: "Food & Catering", value: "Catering" as const },
+      { label: "Wedding Cake & Desserts", value: "Wedding Cake & Desserts" as const }
+    ]
+  },
+  {
+    main: "Attire & Beauty",
+    subs: [
+      { label: "Bridal Wear", value: "Bridal Wear" as const },
+      { label: "Groom Wear", value: "Groom Wear" as const },
+      { label: "Makeup & Hair", value: "Makeup" as const },
+      { label: "Jewellery & Accessories", value: "Jewellery" as const }
+    ]
+  },
+  {
+    main: "Media & Entertainment",
+    subs: [
+      { label: "Photography", value: "Photography" as const },
+      { label: "Videography", value: "Videography" as const },
+      { label: "DJ & Live Music", value: "Music" as const },
+      { label: "Sound & Stage Lighting", value: "Sound & Lighting" as const }
+    ]
+  },
+  {
+    main: "Decor & Stationery",
+    subs: [
+      { label: "Florals & Stage Decor", value: "Decoration" as const },
+      { label: "Invitations & Printing", value: "Printing" as const },
+      { label: "Gifts & Favors", value: "Gifts & Favors" as const }
+    ]
+  },
+  {
+    main: "Logistics & Travel",
+    subs: [
+      { label: "Transportation & Cars", value: "Transportation" as const },
+      { label: "Guest Accommodation", value: "Guest Accommodation" as const }
+    ]
+  },
+  {
+    main: "Other Services",
+    subs: [
+      { label: "Miscellaneous / Coordinator", value: "Other" as const }
+    ]
+  }
 ] as const;
 
 // Helper to map vendor categories to budget categories
@@ -43,6 +97,7 @@ export const mapVendorCategoryToExpense = (vendorCategory: string): string => {
     case "Venue":
       return "Venue";
     case "Catering":
+    case "Wedding Cake & Desserts":
       return "Catering";
     case "Photography":
     case "Videography":
@@ -59,8 +114,11 @@ export const mapVendorCategoryToExpense = (vendorCategory: string): string => {
     case "Transportation":
       return "Transportation";
     case "Music":
+    case "Sound & Lighting":
       return "Music & Entertainment";
     case "Printing":
+    case "Gifts & Favors":
+    case "Guest Accommodation":
     case "Other":
     default:
       return "Miscellaneous";
