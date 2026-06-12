@@ -1723,14 +1723,13 @@ export default function AdminDashboard() {
 
         {/* ── Sidebar Navigation ── */}
         <aside className={`
-          fixed top-0 left-0 h-full z-50 w-72 bg-slate-900 text-slate-300 p-6 flex flex-col justify-between shrink-0
-          transform transition-transform duration-300 ease-in-out
+          fixed top-0 left-0 h-full z-50 w-72 bg-slate-900 text-slate-300 p-6 flex flex-col shrink-0
+          transform transition-transform duration-300 ease-in-out overflow-hidden
           ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}
-          md:static md:w-64 md:translate-x-0 md:h-auto md:z-auto
+          md:static md:w-64 md:translate-x-0 md:h-screen md:z-auto
         `}>
-          <div>
-            {/* Sidebar Header */}
-            <div className="flex items-center justify-between mb-8">
+          {/* Sidebar Header */}
+          <div className="flex items-center justify-between mb-8 shrink-0">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded bg-[#d4af37] text-slate-950 flex items-center justify-center font-bold">{adminSidebarInitial}</div>
                 <div>
@@ -1748,7 +1747,7 @@ export default function AdminDashboard() {
               </button>
             </div>
 
-            <nav className="space-y-4">
+            <nav className="space-y-4 flex-1 overflow-y-auto pr-2 -mr-2 pb-4">
               {[
                 {
                   groupName: "Control Center",
@@ -1811,9 +1810,8 @@ export default function AdminDashboard() {
                 </div>
               ))}
             </nav>
-          </div>
 
-          <div className="pt-6 border-t border-slate-800 flex justify-between items-center text-xs">
+          <div className="pt-6 mt-4 border-t border-slate-800 flex justify-between items-center text-xs shrink-0">
             <a href="/" target="_blank" className="hover:text-white flex items-center gap-1.5">
               <Globe className="h-3.5 w-3.5 text-primary" />
               View Site
