@@ -94,9 +94,10 @@ export interface BudgetTrackerActions {
 
 interface BudgetTrackerTabProps {
   registerActions?: (actions: BudgetTrackerActions | null) => void;
+  isActive?: boolean;
 }
 
-export default function BudgetTrackerTab({ registerActions }: BudgetTrackerTabProps) {
+export default function BudgetTrackerTab({ registerActions, isActive = true }: BudgetTrackerTabProps) {
   // Mounted state for Recharts to avoid SSR hydration mismatches
   const [mounted, setMounted] = useState(false);
   
@@ -193,8 +194,13 @@ export default function BudgetTrackerTab({ registerActions }: BudgetTrackerTabPr
 
   useEffect(() => {
     setMounted(true);
-    loadData();
   }, []);
+
+  useEffect(() => {
+    if (isActive) {
+      loadData();
+    }
+  }, [isActive]);
 
   useEffect(() => {
     if (registerActions) {

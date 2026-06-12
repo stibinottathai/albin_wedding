@@ -3876,15 +3876,15 @@ export default function AdminDashboard() {
         )}
 
         <div className={activeTab === "budget" ? "block" : "hidden"}>
-          <BudgetTrackerTab registerActions={setBudgetActions} />
+          <BudgetTrackerTab registerActions={setBudgetActions} isActive={activeTab === "budget"} />
         </div>
 
         <div className={activeTab === "tasks" ? "block" : "hidden"}>
-          <TasksTrackerTab registerActions={setTasksActions} />
+          <TasksTrackerTab registerActions={setTasksActions} isActive={activeTab === "tasks"} />
         </div>
 
         <div className={activeTab === "vendors" ? "block" : "hidden"}>
-          <VendorsTrackerTab registerActions={setVendorsActions} />
+          <VendorsTrackerTab registerActions={setVendorsActions} isActive={activeTab === "vendors"} />
         </div>
           </div> {/* End of Scrollable Tab Content Container */}
       </main>

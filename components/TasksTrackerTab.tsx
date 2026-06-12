@@ -50,11 +50,12 @@ export interface TasksTrackerActions {
 
 interface TasksTrackerTabProps {
   registerActions?: (actions: TasksTrackerActions | null) => void;
+  isActive?: boolean;
 }
 
 const PRIORITIES = ["LOW", "MEDIUM", "HIGH", "URGENT"] as const;
 
-export default function TasksTrackerTab({ registerActions }: TasksTrackerTabProps) {
+export default function TasksTrackerTab({ registerActions, isActive = true }: TasksTrackerTabProps) {
   const [mounted, setMounted] = useState(false);
   
   // Data States
@@ -118,8 +119,13 @@ export default function TasksTrackerTab({ registerActions }: TasksTrackerTabProp
 
   useEffect(() => {
     setMounted(true);
-    loadData();
   }, []);
+
+  useEffect(() => {
+    if (isActive) {
+      loadData();
+    }
+  }, [isActive]);
 
   // Register Actions for Parent component (Header Button click support)
   useEffect(() => {

@@ -59,9 +59,10 @@ export interface VendorsTrackerActions {
 
 interface VendorsTrackerTabProps {
   registerActions?: (actions: VendorsTrackerActions | null) => void;
+  isActive?: boolean;
 }
 
-export default function VendorsTrackerTab({ registerActions }: VendorsTrackerTabProps) {
+export default function VendorsTrackerTab({ registerActions, isActive = true }: VendorsTrackerTabProps) {
   const [mounted, setMounted] = useState(false);
   
   // Data States
@@ -127,8 +128,13 @@ export default function VendorsTrackerTab({ registerActions }: VendorsTrackerTab
 
   useEffect(() => {
     setMounted(true);
-    loadData();
   }, []);
+
+  useEffect(() => {
+    if (isActive) {
+      loadData();
+    }
+  }, [isActive]);
 
   // Register Actions for Parent component (Header Button click support)
   useEffect(() => {
