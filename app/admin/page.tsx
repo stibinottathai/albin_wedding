@@ -1760,7 +1760,7 @@ export default function AdminDashboard() {
                   items: [
                     { id: "guests" as const, icon: <Users className="h-4 w-4 text-[#d4af37]" />, label: "Guest List" },
                     { id: "rsvp" as const, icon: <ClipboardList className="h-4 w-4 text-[#d4af37]" />, label: "RSVP Responses" },
-                    { id: "wishes" as const, icon: <MessageSquare className="h-4 w-4 text-[#d4af37]" />, label: "Wishes Moderation" }
+                    { id: "wishes" as const, icon: <MessageSquare className="h-4 w-4 text-[#d4af37]" />, label: "Wishes" }
                   ]
                 },
                 {
@@ -1835,7 +1835,7 @@ export default function AdminDashboard() {
                 <h1 className="text-2xl font-serif font-bold text-slate-900 capitalize">
                   {activeTab === "settings" ? "Site Settings" : 
                    activeTab === "rsvp" ? "RSVP Responses" : 
-                   activeTab === "wishes" ? "Wishes Moderation" : 
+                   activeTab === "wishes" ? "Wishes" : 
                    activeTab === "gallery" ? "Wedding Gallery" : 
                    activeTab === "stories" ? "Our Story" : 
                    activeTab === "events" ? "Wedding Events" : 
@@ -3735,7 +3735,7 @@ export default function AdminDashboard() {
                   </div>
                   <div className="md:col-span-2 flex items-center justify-between bg-slate-50 p-4 rounded-xl border border-slate-100">
                     <div>
-                      <label className="block text-sm font-bold text-slate-800">Wishes Moderation</label>
+                      <label className="block text-sm font-bold text-slate-800">Wishes</label>
                       <p className="text-xs text-slate-500">Require admin approval before wishes are publicly displayed.</p>
                     </div>
                     <label className="relative inline-flex items-center cursor-pointer">
