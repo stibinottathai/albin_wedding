@@ -75,6 +75,7 @@ export default function AdminDashboard() {
   const router = useRouter();
   const storyFormRef = React.useRef<HTMLDivElement>(null);
   const faqFormRef = React.useRef<HTMLDivElement>(null);
+  const canvasRef = React.useRef<HTMLCanvasElement>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [email, setEmail] = useState("");
@@ -160,7 +161,7 @@ export default function AdminDashboard() {
   const [newStoryTextMl, setNewStoryTextMl] = useState("");
   const [newStoryImageUrl, setNewStoryImageUrl] = useState("");
   const [newStoryImageFile, setNewStoryImageFile] = useState<File | null>(null);
-  const [newStoryOrderIndex, setNewStoryOrderIndex] = useState(1);
+  const [newStoryOrderIndex, setNewStoryOrderIndex] = useState<number | string>(1);
   const [storyUploadType, setStoryUploadType] = useState<"file" | "url">("file");
   const [storyUploading, setStoryUploading] = useState(false);
   const [storySuccess, setStorySuccess] = useState(false);
@@ -194,7 +195,7 @@ export default function AdminDashboard() {
   // Form states for creating new guest
   const [newGuestName, setNewGuestName] = useState("");
   const [newGuestGreeting, setNewGuestGreeting] = useState("");
-  const [newGuestAttendees, setNewGuestAttendees] = useState(2);
+  const [newGuestAttendees, setNewGuestAttendees] = useState<number | string>(2);
   const [newGuestEmail, setNewGuestEmail] = useState("");
   const [newGuestCategory, setNewGuestCategory] = useState("General");
   const [isAddingCustomCategory, setIsAddingCustomCategory] = useState(false);
@@ -206,8 +207,8 @@ export default function AdminDashboard() {
   const [selectedTemplate, setSelectedTemplate] = useState<"floral" | "gold" | "modern" | "gallery">("floral");
   const [selectedGalleryImage, setSelectedGalleryImage] = useState("");
   const [sharePhone, setSharePhone] = useState("");
-  const canvasRef = React.useRef<HTMLCanvasElement>(null);
   const [editingGuest, setEditingGuest] = useState<Guest | null>(null);
+  const [isGuestModalOpen, setIsGuestModalOpen] = useState(false);
   const [isGuestSaving, setIsGuestSaving] = useState(false);
   const [viewingRsvpMessage, setViewingRsvpMessage] = useState<{ name: string; greeting: string; message: string } | null>(null);
   
@@ -644,7 +645,7 @@ export default function AdminDashboard() {
     setIsGuestSaving(true);
     const guestName = newGuestName.trim();
     const guestGreeting = newGuestGreeting.trim() || guestName;
-    const guestAttendees = newGuestAttendees;
+    const guestAttendees = typeof newGuestAttendees === "number" ? newGuestAttendees : (parseInt(newGuestAttendees as string, 10) || 1);
     const guestEmail = newGuestEmail.trim() || undefined;
     const guestCategory = newGuestCategory;
 
@@ -694,6 +695,7 @@ export default function AdminDashboard() {
       loadAdminData();
     } finally {
       setIsGuestSaving(false);
+      setIsGuestModalOpen(false);
     }
   };
 
@@ -704,6 +706,7 @@ export default function AdminDashboard() {
     setNewGuestAttendees(guest.allowedAttendees || 2);
     setNewGuestEmail(guest.email || "");
     setNewGuestCategory(guest.category || "General");
+    setIsGuestModalOpen(true);
   };
 
   const handleCancelEditGuest = () => {
@@ -713,6 +716,7 @@ export default function AdminDashboard() {
     setNewGuestAttendees(2);
     setNewGuestEmail("");
     setNewGuestCategory("General");
+    setIsGuestModalOpen(false);
   };
 
   // Add custom category in dropdown
@@ -886,7 +890,7 @@ export default function AdminDashboard() {
   const handleCopyCardImage = async () => {
     if (!canvasRef.current || !sharingGuest) return;
     try {
-      canvasRef.current.toBlob(async (blob) => {
+      canvasRef.current.toBlob(async (blob: Blob | null) => {
         if (!blob) {
           alert("Failed to generate invitation card image blob.");
           return;
@@ -1299,7 +1303,7 @@ export default function AdminDashboard() {
         textEn: newStoryTextEn.trim(),
         textMl: newStoryTextMl.trim(),
         imageUrl: imageUrl || "https://images.unsplash.com/photo-1511285560929-80b456fea0bc?q=80&w=800",
-        orderIndex: newStoryOrderIndex,
+        orderIndex: typeof newStoryOrderIndex === "number" ? newStoryOrderIndex : (parseInt(String(newStoryOrderIndex), 10) || 1),
         createdAt: new Date().toISOString()
       };
 
@@ -1892,6 +1896,26 @@ export default function AdminDashboard() {
                   </button>
                 </div>
               )}
+
+              {activeTab === "guests" && (
+                <div className="flex items-center gap-3 shrink-0">
+                  <button
+                    onClick={() => {
+                      setEditingGuest(null);
+                      setNewGuestName("");
+                      setNewGuestGreeting("");
+                      setNewGuestAttendees(2);
+                      setNewGuestEmail("");
+                      setNewGuestCategory("General");
+                      setIsGuestModalOpen(true);
+                    }}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-slate-900 text-white hover:bg-slate-800 font-bold text-xs tracking-wider uppercase rounded-lg transition-all shadow-sm cursor-pointer"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    Add Guest
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 
@@ -2178,132 +2202,6 @@ export default function AdminDashboard() {
         {/* Tab 2: Guest List */}
         {activeTab === "guests" && (
           <div className="space-y-8 animate-fadeIn">
-            {/* Add/Edit Guest Form */}
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-              <h3 className="font-serif font-bold text-lg text-slate-900 mb-4">
-                {editingGuest ? "Edit Invitation" : "Add Invitation"}
-              </h3>
-              <form onSubmit={handleCreateGuest} className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
-                <div>
-                  <label className="block text-xs uppercase font-bold text-slate-400 mb-1">Guest Name</label>
-                  <input
-                    type="text"
-                    required
-                    value={newGuestName || ""}
-                    onChange={(e) => setNewGuestName(e.target.value)}
-                    placeholder="e.g. Uncle Jacob"
-                    className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs uppercase font-bold text-slate-400 mb-1">Greeting Label</label>
-                  <input
-                    type="text"
-                    value={newGuestGreeting || ""}
-                    onChange={(e) => setNewGuestGreeting(e.target.value)}
-                    placeholder="e.g. Uncle Jacob & Aunt Susan"
-                    className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs uppercase font-bold text-slate-400 mb-1">Allowed Attendees</label>
-                  <input
-                    type="number"
-                    min={1}
-                    max={10}
-                    value={newGuestAttendees}
-                    onChange={(e) => setNewGuestAttendees(parseInt(e.target.value, 10))}
-                    className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs uppercase font-bold text-slate-400 mb-1">Category</label>
-                  {isAddingCustomCategory ? (
-                    <div className="flex gap-1 items-center">
-                      <input
-                        type="text"
-                        required
-                        value={customCategoryInput || ""}
-                        onChange={(e) => setCustomCategoryInput(e.target.value)}
-                        placeholder="New Category..."
-                        className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-slate-400"
-                      />
-                      <button
-                        type="button"
-                        onClick={handleSaveCustomCategory}
-                        className="p-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg transition-colors shrink-0 cursor-pointer"
-                        title="Add Category"
-                      >
-                        <Check className="h-4 w-4" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsAddingCustomCategory(false);
-                          setCustomCategoryInput("");
-                          setNewGuestCategory("General");
-                        }}
-                        className="p-2.5 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg transition-colors shrink-0 cursor-pointer"
-                        title="Cancel"
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
-                    </div>
-                  ) : (
-                    <select
-                      value={newGuestCategory || "General"}
-                      onChange={(e) => {
-                        if (e.target.value === "__new__") {
-                          setIsAddingCustomCategory(true);
-                        } else {
-                          setNewGuestCategory(e.target.value);
-                        }
-                      }}
-                      className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm bg-white"
-                    >
-                      {guestCategories.map((cat) => (
-                        <option key={cat} value={cat}>{cat}</option>
-                      ))}
-                      <option value="__new__">+ Add Custom...</option>
-                    </select>
-                  )}
-                </div>
-                <div className="flex gap-2 w-full">
-                  <button
-                    type="submit"
-                    disabled={isGuestSaving}
-                    className="flex-1 px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs uppercase tracking-wider font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer h-[38px] disabled:opacity-60 disabled:cursor-not-allowed"
-                  >
-                    {isGuestSaving ? (
-                      <>
-                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                        {editingGuest ? "Saving..." : "Adding..."}
-                      </>
-                    ) : editingGuest ? (
-                      <>
-                        <Check className="h-4 w-4" />
-                        Save
-                      </>
-                    ) : (
-                      <>
-                        <Plus className="h-4 w-4" />
-                        Add Guest
-                      </>
-                    )}
-                  </button>
-                  {editingGuest && (
-                    <button
-                      type="button"
-                      onClick={handleCancelEditGuest}
-                      className="px-4 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg text-xs uppercase tracking-wider font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer h-[38px]"
-                    >
-                      Cancel
-                    </button>
-                  )}
-                </div>
-              </form>
-            </div>
-
             {/* Category Filter Tabs */}
             <div className="flex flex-wrap gap-2 mb-2">
               <button
@@ -3191,7 +3089,15 @@ export default function AdminDashboard() {
                       required
                       min={1}
                       value={newStoryOrderIndex}
-                      onChange={(e) => setNewStoryOrderIndex(parseInt(e.target.value, 10))}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val === "") {
+                          setNewStoryOrderIndex("");
+                        } else {
+                          const parsed = parseInt(val, 10);
+                          setNewStoryOrderIndex(isNaN(parsed) ? "" : parsed);
+                        }
+                      }}
                       className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm"
                     />
                   </div>
@@ -4201,6 +4107,161 @@ export default function AdminDashboard() {
                 Close
               </button>
             </div>
+          </div>
+        </div>
+      )}
+      {/* Guest Modal */}
+      {isGuestModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto py-8 animate-fadeIn">
+          <div className="bg-white rounded-3xl border border-slate-200 w-full max-w-md shadow-2xl relative overflow-hidden my-auto">
+            <div className="absolute top-0 left-0 w-full h-1 bg-[#d4af37]"></div>
+            
+            {/* Modal Header */}
+            <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+              <h3 className="font-serif text-lg text-slate-950 font-bold">
+                {editingGuest ? "Edit Invitation" : "Add Invitation"}
+              </h3>
+              <button
+                type="button"
+                onClick={handleCancelEditGuest}
+                className="p-1.5 hover:bg-slate-100 text-slate-400 hover:text-slate-700 rounded-lg transition-colors cursor-pointer"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Modal Form */}
+            <form onSubmit={handleCreateGuest} className="p-6 space-y-5">
+              <div>
+                <label className="block text-[10px] text-slate-400 uppercase tracking-widest font-bold mb-2">Guest Name</label>
+                <input
+                  type="text"
+                  required
+                  value={newGuestName || ""}
+                  onChange={(e) => setNewGuestName(e.target.value)}
+                  placeholder="e.g. Uncle Jacob"
+                  className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-[#ffe088] transition-all"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] text-slate-400 uppercase tracking-widest font-bold mb-2">Greeting Label</label>
+                <input
+                  type="text"
+                  value={newGuestGreeting || ""}
+                  onChange={(e) => setNewGuestGreeting(e.target.value)}
+                  placeholder="e.g. Uncle Jacob & Aunt Susan"
+                  className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-[#ffe088] transition-all"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[10px] text-slate-400 uppercase tracking-widest font-bold mb-2">Allowed Attendees</label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={10}
+                    value={newGuestAttendees}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val === "") {
+                        setNewGuestAttendees("");
+                      } else {
+                        const parsed = parseInt(val, 10);
+                        setNewGuestAttendees(isNaN(parsed) ? "" : parsed);
+                      }
+                    }}
+                    className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-[#ffe088] transition-all"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] text-slate-400 uppercase tracking-widest font-bold mb-2">Category</label>
+                  {isAddingCustomCategory ? (
+                    <div className="flex gap-1 items-center">
+                      <input
+                        type="text"
+                        required
+                        value={customCategoryInput || ""}
+                        onChange={(e) => setCustomCategoryInput(e.target.value)}
+                        placeholder="New Category..."
+                        className="w-full px-3 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-[#ffe088] transition-all"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleSaveCustomCategory}
+                        className="p-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl transition-colors shrink-0 cursor-pointer"
+                        title="Add Category"
+                      >
+                        <Check className="h-4 w-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsAddingCustomCategory(false);
+                          setCustomCategoryInput("");
+                          setNewGuestCategory("General");
+                        }}
+                        className="p-3 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl transition-colors shrink-0 cursor-pointer"
+                        title="Cancel"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <select
+                      value={newGuestCategory || "General"}
+                      onChange={(e) => {
+                        if (e.target.value === "__new__") {
+                          setIsAddingCustomCategory(true);
+                        } else {
+                          setNewGuestCategory(e.target.value);
+                        }
+                      }}
+                      className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-4 focus:ring-[#ffe088] transition-all"
+                    >
+                      {guestCategories.map((cat) => (
+                        <option key={cat} value={cat}>{cat}</option>
+                      ))}
+                      <option value="__new__">+ Add Custom...</option>
+                    </select>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 pt-3">
+                <button
+                  type="button"
+                  onClick={handleCancelEditGuest}
+                  className="flex-1 px-4 py-3 border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold text-xs tracking-wider uppercase rounded-xl transition-all cursor-pointer"
+                  disabled={isGuestSaving}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isGuestSaving}
+                  className="flex-1 px-4 py-3 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs tracking-wider uppercase rounded-xl transition-all shadow-md inline-flex items-center justify-center cursor-pointer"
+                >
+                  {isGuestSaving ? (
+                    <>
+                      <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                      {editingGuest ? "Saving..." : "Adding..."}
+                    </>
+                  ) : editingGuest ? (
+                    <>
+                      <Check className="h-4 w-4 mr-1.5" />
+                      Save Guest
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="h-4 w-4 mr-1.5" />
+                      Add Guest
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
